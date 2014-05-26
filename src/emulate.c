@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "bitwise.c"
+
 ////////////////////////////////////////////////////////////////////////////////
 //  CONSTANTS AND MACROS  //////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -20,28 +21,34 @@
 //  TYPE DEFINITIONS  //////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-typedef struct pipeline // Three-stage fetch/decode/execute pipeline
+typedef struct pipeline 
 {
-  int32_t fetched;		// Current fetched instruction/data		
-  int32_t decode;		// Current instruction/data to be decoded
+  	int32_t fetched;			
+  	int32_t decode;		
 } pipeline_t;
 
-typedef struct ARM 					 	 // ARM machine state  
+typedef struct ARM 					 	 
 {
-  int8_t        memory[MEMORY_CAPACITY]; // Main memory
-  int32_t    registers[REGISTER_COUNT];  // Registers
-  pipeline_t *pipeline; 				 // Pipeline USE POINTER INSTEAD?
+  	int8_t memory[MEMORY_CAPACITY]; 
+  	int32_t registers[REGISTER_COUNT];  
+  	pipeline_t *pipeline; 				 
 } ARM_t;
 
-typedef enum // Mnemonics for referencing registers in ARM.registers[register_t]
+typedef enum 
 {						                     							
-  R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, // General purpose
-  __SP, __LR, 											 // Unused, pls ignore
-  PC,												     // Program Counter
-  CPSR													 // CPSR, 'nuff said
+  	R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, 
+  	SP, LR, 											 
+  	PC,												     
+  	CPSR													 
 } register_t;
 
-
+typedef enum
+{
+	NEGATIVE = 31,
+	ZERO 	 = 30,
+	CARRY 	 = 29,
+	OVERFLOW = 28
+} CPSR_flags_t
 
 ////////////////////////////////////////////////////////////////////////////////
 //  ARM OBJECT  ////////////////////////////////////////////////////////////////
@@ -82,23 +89,21 @@ int32_t test_glue(int8_t a, int8_t b, int8_t c, int8_t d);
 int main(int argc, char **argv) 
 {
 
-
-	
-    // Welcome the user and perform sanity check
     printf(" > Running ARM Emulator v1.0 (%s)\n", argv[0]);
+    
     if (argc < 2 || argv[1] == NULL) 
         system_exit(" > Usage: emulate <input.bin>\n > Terminated\n");
   
-    // Now that file is open, initialize our ARM object
+
     ARM = calloc(1, sizeof(ARM_t));
     if (ARM == NULL) system_exit(" > Fatal memory-related error");
 
-    // Open the binary input file
+
     FILE *file = fopen(argv[1], "rb");
     if (file == NULL) 
     	system_exit(" > Error opening input file");
     
-    // Seek the end of file
+    
     if (fseek(file, 0, SEEK_END) != 0) 
     	system_exit(" > Error reading file here");
     
@@ -106,11 +111,11 @@ int main(int argc, char **argv)
     
     rewind(file);
     
-    // Read binary input file (the program) and load it into ARM's main memory
+
     if (fread(ARM->memory, 1, bytes, file) != bytes) 
   		system_exit(" > Error reading file lol");
  
- 	// Check for other errors
+
     if (ferror(file)) 
     	system_exit(" > Error working with file");
 
@@ -118,28 +123,12 @@ int main(int argc, char **argv)
 	
     // Fetch instrction at memory[0]. That is the inital value of PC
     // Load initial PC value into registers[PC]
-    //ARM->registers[PC] = memory_word_read(0);
-  
+    ARM->registers[PC] = memory_word_read(0);
     
+    emulator_loop();
   
-    //emulator_loop();
-  
-	print_ARM_state();
-  
-    // Close the file eventually
     fclose(file);
-    
-    // Don't forget to free up memory!
     free(ARM);
-
-
-   
-	//print_bits(8);
-	//print_bits(bits_get(255, 0, 4)); 
-	//print_bits(1);
-	//print_bits(256);
-	//print_bits(-256);	*/
-
 }
 
 void system_exit(char *message)
@@ -152,35 +141,37 @@ void system_exit(char *message)
 //  CORE  //////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-// Simulates the three-stage simulation pipeline
 void emulator_loop()
 {
-  // FETCH NEXT INSTRUCTION
   ARM->pipeline->fetched = ARM->memory[ARM->registers[PC]];
   
-  // INCREMENT PROGRAM COUNTER
   ARM->registers[PC] += 4;
     
   for (;;) 
   {
-  	// DECODE FETCHED INSTRUCTION
   	ARM->pipeline->decode = ARM->pipeline->fetched;
   
-  	// FETCH NEXT INSTRUCTION
   	ARM->pipeline->fetched = ARM->memory[ARM->registers[PC]];
-  
-  	// INCREMENT PROGRAM COUNTER
+ 
   	ARM->registers[PC] += 4;
   
-  	// CHECK IF WE'RE DONE
-  	if (ARM->pipeline->decode == 0) break; 
+  	int32_t exe_instruction = ARM->pipeline->decode;
   	
-  	// EXECUTE CURRENT DECODED INSTRUCTION
-  	decode_instruction(ARM->pipeline->decode);
+  	if (exe_instruction == 0) break; 
+  	
+  	if (check_condition_code(exe_instruction))
+  	{
+  		decode_instruction(ARM->pipeline->decode);
+  	}
   }
 }
 
-// Decode and execute the instruction contained in word 
+
+int get_CPSR_flag(CPSR_flag_t) 
+{
+	return BIT_GET(ARM->registers[CPSR], CPSR_flag_t);
+}
+
 void decode_instruction(int32_t word)
 {  
   	int code = bits_get(word, 26, 27); 
@@ -190,7 +181,7 @@ void decode_instruction(int32_t word)
   		case 2 : exe_branch(word); break;
   		case 0 : 
   		{
-  			if (BIT_GET(word, 25) == 1)  exe_data_processing(word);
+  			if (BIT_GET(word, 25) == 1) exe_data_processing(word);
   			else 
   			{
   				if (BIT_GET(word, 4) == 0) exe_data_processing(word);
@@ -198,15 +189,36 @@ void decode_instruction(int32_t word)
   				{
   					if (BIT_GET(word, 7) == 1) exe_multiply(word);
   					else exe_data_processing(word);
-  				}
-  			
+  				}		
   			}
   			break;
   		}
   		default : exit(EXIT_FAILURE); 
   	}		
-  }
 }
+
+
+
+int check_condition_code(int32_t word)
+{
+	int cond = bits_get(word, 28, 31);
+	switch (cond) 
+	{
+		case 0 : return get_CPSR_flag(ZERO); // eq - Z set - equal
+		case 1 : return !get_CPSR_flag(ZERO); // ne - Z clear - not equal
+		case 2 : return get_CPSR_flag(NEGATIVE) == get_CPSR_flag(OVERFLOW); // ge - N equals V - greater or equal
+		case 3 : return get_CPSR_flag(NEGATIVE) != get_CPSR_flag(OVERFLOW);// lt - N not equal to V - less than
+		case 4 : return !get_CPSR_flag(ZERO) && (get_CPSR_flag(NEGATIVE) == get_CPSR_flag(OVERFLOW)); // gt - Z clear AND (N equals V) - greater than
+		case 5 : return get_CPSR_flag(ZERO) || (get_CPSR_flag(NEGATIVE) != get_CPSR_flag(OVERFLOW)); // le - Z set OR (N not equal to V) - less than or equal
+		case 7 : return 1;
+		default : return 0;
+	
+	}
+
+
+}
+
+
 
 void print_ARM_state()
 {
