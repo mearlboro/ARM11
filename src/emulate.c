@@ -3,8 +3,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
-#include "bitwise.c" // Include our bit-manipulation library
-
+#include "bitwise.c"
 ////////////////////////////////////////////////////////////////////////////////
 //  CONSTANTS AND MACROS  //////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -62,7 +61,7 @@ void exe_single_data_transfer(int32_t word);
 void exe_data_processing(int32_t word);
 void exe_multiply(int32_t word);
 void exe_branch(int32_t word);
-void output_ARM_state();
+void print_ARM_state();
 int8_t memory_byte_read(uint16_t memory_address);
 int32_t memory_word_read(uint16_t memory_address);
 void memory_byte_write(uint16_t memory_address, int8_t byte);
@@ -82,11 +81,8 @@ int32_t test_glue(int8_t a, int8_t b, int8_t c, int8_t d);
 
 int main(int argc, char **argv) 
 {
-	/*char s[100000];
-	freopen("add01","r",stdin);
-	scanf("%s",s);
-	printf("%s",s);
-	*/
+
+
 	
     // Welcome the user and perform sanity check
     printf(" > Running ARM Emulator v1.0 (%s)\n", argv[0]);
@@ -122,13 +118,13 @@ int main(int argc, char **argv)
 	
     // Fetch instrction at memory[0]. That is the inital value of PC
     // Load initial PC value into registers[PC]
-    ARM->registers[PC] = memory_word_read(0);
+    //ARM->registers[PC] = memory_word_read(0);
   
     
   
-    emulator_loop();
+    //emulator_loop();
   
-
+	print_ARM_state();
   
     // Close the file eventually
     fclose(file);
@@ -136,8 +132,10 @@ int main(int argc, char **argv)
     // Don't forget to free up memory!
     free(ARM);
 
-   
 
+   
+	//print_bits(8);
+	//print_bits(bits_get(255, 0, 4)); 
 	//print_bits(1);
 	//print_bits(256);
 	//print_bits(-256);	*/
@@ -158,7 +156,7 @@ void system_exit(char *message)
 void emulator_loop()
 {
   // FETCH NEXT INSTRUCTION
-  pipeline.fetched = ARM->memory[ARM->registers[PC]];
+  ARM->pipeline->fetched = ARM->memory[ARM->registers[PC]];
   
   // INCREMENT PROGRAM COUNTER
   ARM->registers[PC] += 4;
@@ -166,75 +164,72 @@ void emulator_loop()
   for (;;) 
   {
   	// DECODE FETCHED INSTRUCTION
-  	pipeline.decode = pipeline.fetched
+  	ARM->pipeline->decode = ARM->pipeline->fetched;
   
   	// FETCH NEXT INSTRUCTION
-  	pipeline.fetched = ARM->memory[ARM->registers[PC]];
+  	ARM->pipeline->fetched = ARM->memory[ARM->registers[PC]];
   
   	// INCREMENT PROGRAM COUNTER
   	ARM->registers[PC] += 4;
   
   	// CHECK IF WE'RE DONE
-  	if (pipeline.decode == 0) break; 
+  	if (ARM->pipeline->decode == 0) break; 
   	
   	// EXECUTE CURRENT DECODED INSTRUCTION
-  	decode_instruction(pipeline.decode);
+  	decode_instruction(ARM->pipeline->decode);
   }
 }
 
 // Decode and execute the instruction contained in word 
 void decode_instruction(int32_t word)
 {  
-
-  /*
-  
-  word[n] means the nth bit of word
-  
-  ########################################################
-  consider word[27] and word[26]
-  
-  if      01 then exe_single_data_transfer(word)
-  
-  else if 10 then exe_branch(word)
-  
-  else if 00 then {
-  	
-  	if      word[25] == 1 then exe_data_processing(word [operand2 is a shifted register])
-  	 
-  	else if word[25] == 0 then {
-  	
-  	  if      word[4] == 0 then exe_data_processing(word)
-  	  
-  	  else if word[4] == 1 then {
-    	  
-    	if      word[7] == 1 then exe_multiply(word)
-    	
-    	else if word[7] == 0 then exe_data_processing(word)
-  	  
-  	  }
-  	  
-  	} 
-  		
+  	int code = bits_get(word, 26, 27); 
+  	switch (code) 
+  	{
+		case 1 : exe_single_data_transfer(word); break;
+  		case 2 : exe_branch(word); break;
+  		case 0 : 
+  		{
+  			if (BIT_GET(word, 25) == 1)  exe_data_processing(word);
+  			else 
+  			{
+  				if (BIT_GET(word, 4) == 0) exe_data_processing(word);
+  				else 
+  				{
+  					if (BIT_GET(word, 7) == 1) exe_multiply(word);
+  					else exe_data_processing(word);
+  				}
+  			
+  			}
+  			break;
+  		}
+  		default : exit(EXIT_FAILURE); 
+  	}		
   }
-  	
-  else ERROR_ERROR_EXTERMINATE_EXTERMINATE!!!
-  ########################################################
-   
-   */
 }
 
-void output_ARM_state()
+void print_ARM_state()
 {
   // Output content of registers
 	
   // Oputput content of non-zero memory
-  	printf("Non-zero memory:\n");
+  	printf("Non-zero memory:\n\n");
+  	printf("Byte by Byte:\n");
+  	for (uint8_t i = 0; i < MEMORY_CAPACITY; i++)
+  	{
+  		if (i > 10) break;
+  		//int32_t word = memory_word_read(i);
+  		
+		printf("%i: %i\n", i, memory_byte_read(i));
+  	}
+  	printf("\nWord by Word:\n");
   	for (uint16_t i = 0; i < MEMORY_CAPACITY; i += 4)
   	{
   		int32_t word = memory_word_read(i);
   		if (word == 0) break;
-		printf("0x%x: %x\n", i, word);
+		printf("0x%i: %i\n", i, word);
   	}
+
 }
 
 
@@ -280,7 +275,8 @@ int32_t memory_word_read(uint16_t m)
 		   third  = ARM->memory[m+1],
 		   fourth = ARM->memory[m+0];
 		   
-	return ((first << 24) + (second << 16) + (third << 8) + fourth); 
+	return ((first << 24) | (second << 16) | (third << 8) | fourth); 
+	//return ((fourth << 24) | (third << 16) | (second << 8) | first); 
 }
 
 
