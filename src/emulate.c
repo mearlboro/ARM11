@@ -1,5 +1,13 @@
 #include <stdlib.h>
 #include <stdint.h>
+#include <assert.h>
+#include <string.h>
+#include <stdio.h>
+#include "bitwise.c" // Include our bit-manipulation library
+
+////////////////////////////////////////////////////////////////////////////////
+//  CONSTANTS AND MACROS  //////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 // ARM main memory has 2^16 = 65536 bytes
 #define MEMORY_CAPACITY 65536
@@ -7,25 +15,75 @@
 // ARM has 17, 32-bit registers
 #define REGISTER_COUNT 17
 
-// This represents the state of an ARM machine: main memory and registers
-typedef struct ARM_state
+
+
+////////////////////////////////////////////////////////////////////////////////
+//  TYPE DEFINITIONS  //////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+typedef struct pipeline // Three-stage fetch/decode/execute pipeline
 {
-  int8_t memory[MEMORY_CAPACITY];
-  int32_t registers[REGISTER_COUNT];
-} ARM;
+  int32_t fetched;		// Current fetched instruction/data		
+  int32_t decoded;		// Current instruction/data to be decoded
+} pipeline_t;
 
-// This represets the three-stage fetch/decode/execute pipeline
-typedef struct pipeline 
+typedef struct ARM 					 	 // ARM machine state  
 {
-  int32_t fetched;
-  int32_t decoded;
-  //int32_t executed;
-} pipeline;
+  int8_t        memory[MEMORY_CAPACITY]; // Main memory
+  int32_t    registers[REGISTER_COUNT];  // Registers
+  pipeline_t pipeline; 				     // Pipeline USE POINTER INSTEAD?
+} ARM_t;
+
+typedef enum // Mnemonics for referencing registers in ARM.registers[register_t]
+{						                     							
+  R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, // General purpose
+  __SP, __LR, 											 // Unused, pls ignore
+  PC,												     // Program Counter
+  CPSR													 // CPSR, 'nuff said
+} register_t;
 
 
+
+////////////////////////////////////////////////////////////////////////////////
+//  ARM OBJECT  ////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+ARM_t *ARM = NULL;
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//  FUNCTION PROTOTYPES  ///////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+void emulator_loop();
+void decode_instruction(int32_t word);
+void exe_single_data_transfer(int32_t word);
+void exe_data_processing(int32_t word);
+void exe_multiply(int32_t word);
+void exe_branch(int32_t word);
+void optput_ARM_state();
+int8_t memory_byte_read(uint16_t memory_address);
+int32_t memory_word_read(uint16_t memory_address);
+void memory_byte_write(uint16_t memory_address, int8_t byte);
+void memory_word_write(uint16_t memory_address, int32_t word);
+int32_t register_read(register_t reg);
+void register_write(register_t reg, int32_t word);
+// DEBUG/TESTING
+void print_ARM_info();
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//  MAIN  //////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char **argv) 
 {
+	print_ARM_info();
+
+
+
   // Obtain binary input file path
   
   // Initialize ARM's main memory and registers to 0
@@ -43,10 +101,14 @@ int main(int argc, char **argv)
 }
 
 
-// THREE-STAGE EXECUTION PIPELINE
+
+////////////////////////////////////////////////////////////////////////////////
+//  CORE  //////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+// Simulates the three-stage simulation pipeline
 void emulator_loop()
 {
-
   // FETCH NEXT INSTRUCTION
   // pipeline fetched <-- [PC]
   
@@ -70,8 +132,8 @@ void emulator_loop()
  
 }
 
-
-void execute_instruction(int32_t word)
+// Decode and execute the instruction contained in word 
+void decode_instruction(int32_t word)
 {  
   // Check instruction (word)
   // IF: is HALT (32 zeros) THEN terminate and output_ARM_state()
@@ -114,13 +176,6 @@ void execute_instruction(int32_t word)
    */
 }
 
-
-void exe_single_data_transfer(int32_t word) {}
-void exe_data_processing(int32_t word) {}
-void exe_multiply(int32_t word) {}
-void exe_branch(int32_t word) {}
-
-
 void optput_ARM_state()
 {
   // Output content of registers
@@ -130,17 +185,89 @@ void optput_ARM_state()
 
 
 
+////////////////////////////////////////////////////////////////////////////////
+//  INSTRUCTION EXECUTION FUNCTIONS ////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+void exe_single_data_transfer(int32_t word) 
+{
+
+}
+
+void exe_data_processing(int32_t word) 
+{
+
+}
+
+void exe_multiply(int32_t word) 
+{
+
+}
+
+void exe_branch(int32_t word) 
+{
+
+}
 
 
 
+////////////////////////////////////////////////////////////////////////////////
+//  MEMORY/REGISTERS READ/WRITE ////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+int8_t memory_byte_read(uint16_t memory_address) 
+{
+	return 0;
+}
+
+int32_t memory_word_read(uint16_t memory_address) 
+{
+	return 0;
+}
+
+void memory_byte_write(uint16_t memory_address, int8_t byte) 
+{
+
+}
+
+void memory_word_write(uint16_t memory_address, int32_t word) 
+{
+
+}
+
+int32_t register_read(register_t reg) 
+{
+	return 0;
+}
+
+void register_write(register_t reg, int32_t word) 
+{
+
+}
 
 
 
+////////////////////////////////////////////////////////////////////////////////
+//  TESTING/DEBUG  /////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
-
-
-
-
+void print_ARM_info() 
+{
+	// In ARM_t, memory array is 65536 bytes, registers array is 17*4=68 bytes.
+	// 65536 + 68 = 65604 bytes.
+	// sizeof(ARM_t) returns 65612.
+	// The compiled padded the ARM struct to achieve better performance, 
+	// hence the mysterious extra 8 bytes... Thanks compiler!  
+	printf("struct ARM is %lu bytes.\n", sizeof(ARM_t));
+	
+	// sizeof(ARM) returns 8 bytes, the size of a pointer, since ARM is a
+	// pointer variable (duh). sizeof(ARM_t *) also returns 8
+	printf("\"ARM_t ARM = NULL;\" sizeof(ARM) = sizeof(ARM_t *) = %lu = %lu bytes.\n", sizeof(ARM), sizeof(ARM_t*));
+	
+	ARM_t ARM_test;
+	printf("\"ARM_t ARM_test;\" sizeof(ARM_test) = sizeof(ARM_t) = %lu = %lu bytes.\n", sizeof(ARM), sizeof(ARM_t*));
+	
+}
 
 
 

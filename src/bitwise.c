@@ -1,0 +1,71 @@
+#include <stdio.h>
+
+////////////////////////////////////////////////////////////////////////////////
+//  FUNCTION PROTOTYPES  ///////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+void print_bits(int32_t i);
+char *int_to_bits_array(int32_t i);
+int32_t bits_array_to_int(char *bits_array);
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//  CONSTANTS AND MACROS  //////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+// Sets the nth bit of integer i where 0 is rightmost bit 
+#define BIT_SET(i, n) ((i) |= 1 << (n)) 
+
+// Clears the nth bit of integer i where 0 is rightmost bit 
+#define BIT_CLEAR(i, n) ((i) &= ~(1 << (n))) 
+
+// Toggles the nth bit of integer i where 0 is rightmost bit 
+#define BIT_TOGGLE(i, n) ((i) ^= 1 << (n)) 
+
+// Gets the nth bit of integer i where 0 is the rightmost bit 
+#define BIT_GET(i, n) (!!((i) & (1 << (n))))
+
+// Gets bits n to m of integer i where 0 is the rightmost bit
+#define BITS_GET(i, n, m) (0) // TODO
+
+// Sets bits n to m of integer i to the value of bits n to m of integer j
+#define BITS_SET(i, j, n, m) (0) // TODO
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+//  CORE  //////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+// Prints the bits of integer i to the standard output
+void print_bits(int32_t i) 
+{
+
+}
+
+// Returns the binary string representation of integer i
+char *int_to_bits_array(int32_t i) 
+{
+	return NULL;
+}
+
+// Returns the integer value of the binary string representation bits_array
+int32_t bits_array_to_int(char *bits_array) 
+{
+	return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
