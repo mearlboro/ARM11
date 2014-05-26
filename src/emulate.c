@@ -81,6 +81,7 @@ void system_exit(char *message); // Don't really like this...
 
 int main(int argc, char **argv) 
 {
+
     // Welcome the user and perform sanity check
     printf(" > Running ARM Emulator v1.0 (%s)\n", argv[0]);
     if (argc < 2 || argv[1] == NULL) 
@@ -106,8 +107,7 @@ int main(int argc, char **argv)
     if (ferror(file)) 
     	system_exit(" > Error working with file");
 
-    
-    fseek
+
     // Fetch instrction at memory[0]. That is the inital value of PC
   
     // Load initial PC value into registers[PC]
@@ -120,8 +120,12 @@ int main(int argc, char **argv)
     
     // Don't forget to free up memory!
     free(ARM);
+
    
-	
+
+	print_bits(1);
+	print_bits(256);
+	print_bits(-256);	
 
 }
 

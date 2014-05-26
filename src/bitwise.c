@@ -41,7 +41,14 @@ int32_t bits_array_to_int(char *bits_array);
 // Prints the bits of integer i to the standard output
 void print_bits(int32_t i) 
 {
-
+	// printf("Integer %i in binary : ", i); 
+	for (int c = sizeof(i) * 8 - 1; c >= 0; c--) 
+	{ 
+		char bit = ((i >> c) & 1) ? '1' : '0'; 
+		printf("%c", bit); 
+		if (c % 8 == 0) printf(" "); 
+	} 
+	printf("\n"); 
 }
 
 // Returns the binary string representation of integer i
