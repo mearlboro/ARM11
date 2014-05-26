@@ -27,7 +27,19 @@ int32_t bits_array_to_int(char *bits_array);
 #define BIT_GET(i, n) (!!((i) & (1 << (n))))
 
 // Gets bits n to m of integer i where 0 is the rightmost bit
-#define BITS_GET(i, n, m) (0) // TODO
+int32_t bits_get(int32_t i, int n, int m)
+{
+  int32_t mask = 0;
+  for(int j=n ; j<=m ; ++j)
+  {
+    int32_t x = 1 << j;
+    mask += x;
+  }
+  
+  i = i & mask;
+  i = i >> n;
+  return i;
+}
 
 // Sets bits n to m of integer i to the value of bits n to m of integer j
 #define BITS_SET(i, j, n, m) (0) // TODO
