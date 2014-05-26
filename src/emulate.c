@@ -31,7 +31,7 @@ typedef struct ARM 					 	 // ARM machine state
 {
   int8_t        memory[MEMORY_CAPACITY]; // Main memory
   int32_t    registers[REGISTER_COUNT];  // Registers
-  pipeline_t pipeline; 				     // Pipeline USE POINTER INSTEAD?
+  pipeline_t *pipeline; 				 // Pipeline USE POINTER INSTEAD?
 } ARM_t;
 
 typedef enum // Mnemonics for referencing registers in ARM.registers[register_t]
@@ -71,6 +71,7 @@ int32_t register_read(register_t reg);
 void register_write(register_t reg, int32_t word);
 // DEBUG/TESTING
 void print_ARM_info();
+void system_exit(char *message); // Don't really like this...
 
 
 
@@ -80,27 +81,55 @@ void print_ARM_info();
 
 int main(int argc, char **argv) 
 {
-	print_ARM_info();
-
-
-
-  // Obtain binary input file path
+    // Welcome the user and perform sanity check
+    printf(" > Running ARM Emulator v1.0 (%s)\n", argv[0]);
+    if (argc < 2 || argv[1] == NULL) 
+        system_exit(" > Usage: emulate <input.bin>\n > Terminated\n");
   
-  // Initialize ARM's main memory and registers to 0
+    // Now that file is open, initialize our ARM object
+    ARM = calloc(1, sizeof(ARM_t));
+    if (ARM == NULL) system_exit(" > Fatal memory-related error");
+
+    // Open the binary input file
+    FILE *file = fopen(argv[1], "rb");
+    if (file == NULL) 
+    	system_exit(" > Error opening input file");
     
-  // Read binary input file (the program) and load it into ARM's main memory
-  // ON ERROR: notify user something went wrong :(
-  // ON SUCCESS: continue
+    
+    
+    
+    // Read binary input file (the program) and load it into ARM's main memory
+    if (fread(ARM->memory, fseek, 1, file)  
+  		system_exit(" > Error reading file");
+ 
+ 	// Check for other errors
+    if (ferror(file)) 
+    	system_exit(" > Error working with file");
 
-  // Fetch instrction at memory[0]. That is the inital value of PC
+    
+    fseek
+    // Fetch instrction at memory[0]. That is the inital value of PC
   
-  // Load initial PC value into registers[PC]
+    // Load initial PC value into registers[PC]
   
-  // Begin emulator_loop()
+    // Begin emulator_loop()
+    printf(" > test = %i\n", test);
+  
+    // Close the file eventually
+    fclose(file);
+    
+    // Don't forget to free up memory!
+    free(ARM);
+   
+	
 
 }
 
-
+void system_exit(char *message)
+{
+	perror(message);
+    exit(EXIT_FAILURE);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 //  CORE  //////////////////////////////////////////////////////////////////////
@@ -258,14 +287,20 @@ void print_ARM_info()
 	// sizeof(ARM_t) returns 65612.
 	// The compiled padded the ARM struct to achieve better performance, 
 	// hence the mysterious extra 8 bytes... Thanks compiler!  
-	printf("struct ARM is %lu bytes.\n", sizeof(ARM_t));
+	//freopen("data.in","r",stdin);
+	//freopen("data.out","w",stdout);
+	//printf("struct ARM is %lu bytes.\n", sizeof(ARM_t));
 	
 	// sizeof(ARM) returns 8 bytes, the size of a pointer, since ARM is a
 	// pointer variable (duh). sizeof(ARM_t *) also returns 8
-	printf("\"ARM_t ARM = NULL;\" sizeof(ARM) = sizeof(ARM_t *) = %lu = %lu bytes.\n", sizeof(ARM), sizeof(ARM_t*));
+	//printf("\"ARM_t ARM = NULL;\" sizeof(ARM) = sizeof(ARM_t *) = %lu = %lu bytes.\n", sizeof(ARM), sizeof(ARM_t*));
 	
-	ARM_t ARM_test;
-	printf("\"ARM_t ARM_test;\" sizeof(ARM_test) = sizeof(ARM_t) = %lu = %lu bytes.\n", sizeof(ARM), sizeof(ARM_t*));
+	//ARM_t ARM_test;
+	//printf("\"ARM_t ARM_test;\" sizeof(ARM_test) = %lu bytes\n", sizeof(ARM_test));
+	
+	
+	printf("sizeof(*ARM) = %lu bytes.\n", sizeof(*ARM));
+	
 	
 }
 
