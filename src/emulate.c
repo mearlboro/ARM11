@@ -24,7 +24,7 @@
 typedef struct pipeline // Three-stage fetch/decode/execute pipeline
 {
   int32_t fetched;		// Current fetched instruction/data		
-  int32_t decoded;		// Current instruction/data to be decoded
+  int32_t decode;		// Current instruction/data to be decoded
 } pipeline_t;
 
 typedef struct ARM 					 	 // ARM machine state  
@@ -62,7 +62,7 @@ void exe_single_data_transfer(int32_t word);
 void exe_data_processing(int32_t word);
 void exe_multiply(int32_t word);
 void exe_branch(int32_t word);
-void optput_ARM_state();
+void output_ARM_state();
 int8_t memory_byte_read(uint16_t memory_address);
 int32_t memory_word_read(uint16_t memory_address);
 void memory_byte_write(uint16_t memory_address, int8_t byte);
@@ -72,6 +72,7 @@ void register_write(register_t reg, int32_t word);
 // DEBUG/TESTING
 void print_ARM_info();
 void system_exit(char *message); // Don't really like this...
+int32_t test_glue(int8_t a, int8_t b, int8_t c, int8_t d);
 
 
 
@@ -81,7 +82,12 @@ void system_exit(char *message); // Don't really like this...
 
 int main(int argc, char **argv) 
 {
-
+	/*char s[100000];
+	freopen("add01","r",stdin);
+	scanf("%s",s);
+	printf("%s",s);
+	*/
+	
     // Welcome the user and perform sanity check
     printf(" > Running ARM Emulator v1.0 (%s)\n", argv[0]);
     if (argc < 2 || argv[1] == NULL) 
@@ -96,24 +102,33 @@ int main(int argc, char **argv)
     if (file == NULL) 
     	system_exit(" > Error opening input file");
     
+    // Seek the end of file
+    if (fseek(file, 0, SEEK_END) != 0) 
+    	system_exit(" > Error reading file here");
     
+    long bytes = ftell(file);
     
+    rewind(file);
     
     // Read binary input file (the program) and load it into ARM's main memory
-    if (fread(ARM->memory, fseek, 1, file)  
-  		system_exit(" > Error reading file");
+    if (fread(ARM->memory, 1, bytes, file) != bytes) 
+  		system_exit(" > Error reading file lol");
  
  	// Check for other errors
     if (ferror(file)) 
     	system_exit(" > Error working with file");
 
-
+	
+	
     // Fetch instrction at memory[0]. That is the inital value of PC
-  
     // Load initial PC value into registers[PC]
+    ARM->registers[PC] = memory_word_read(0);
   
-    // Begin emulator_loop()
-    printf(" > test = %i\n", test);
+    
+  
+    emulator_loop();
+  
+
   
     // Close the file eventually
     fclose(file);
@@ -123,9 +138,9 @@ int main(int argc, char **argv)
 
    
 
-	print_bits(1);
-	print_bits(256);
-	print_bits(-256);	
+	//print_bits(1);
+	//print_bits(256);
+	//print_bits(-256);	*/
 
 }
 
@@ -143,35 +158,34 @@ void system_exit(char *message)
 void emulator_loop()
 {
   // FETCH NEXT INSTRUCTION
-  // pipeline fetched <-- [PC]
+  pipeline.fetched = ARM->memory[ARM->registers[PC]];
   
   // INCREMENT PROGRAM COUNTER
-  // PC = PC + 4
+  ARM->registers[PC] += 4;
+    
+  for (;;) 
+  {
+  	// DECODE FETCHED INSTRUCTION
+  	pipeline.decode = pipeline.fetched
   
+  	// FETCH NEXT INSTRUCTION
+  	pipeline.fetched = ARM->memory[ARM->registers[PC]];
   
-  /*** main_loop ***/
-  // DECODE FETCHED INSTRUCTION
-  // pipeline decoded <-- pipeline fetched
+  	// INCREMENT PROGRAM COUNTER
+  	ARM->registers[PC] += 4;
   
-  // FETCH NEXT INSTRUCTION
-  // pipeline fetched <-- [PC]
-  
-  // INCREMENT PROGRAM COUNTER
-  // PC = PC + 4
-  
-  // EXECUTE CURRENT DECODED INSTRUCTION
-  // execute_instruction(pipeline decoded)
-  /*** goto main_loop ***/
- 
+  	// CHECK IF WE'RE DONE
+  	if (pipeline.decode == 0) break; 
+  	
+  	// EXECUTE CURRENT DECODED INSTRUCTION
+  	decode_instruction(pipeline.decode);
+  }
 }
 
 // Decode and execute the instruction contained in word 
 void decode_instruction(int32_t word)
 {  
-  // Check instruction (word)
-  // IF: is HALT (32 zeros) THEN terminate and output_ARM_state()
-  // ELSE execute it
-  
+
   /*
   
   word[n] means the nth bit of word
@@ -209,13 +223,19 @@ void decode_instruction(int32_t word)
    */
 }
 
-void optput_ARM_state()
+void output_ARM_state()
 {
   // Output content of registers
 	
   // Oputput content of non-zero memory
+  	printf("Non-zero memory:\n");
+  	for (uint16_t i = 0; i < MEMORY_CAPACITY; i += 4)
+  	{
+  		int32_t word = memory_word_read(i);
+  		if (word == 0) break;
+		printf("0x%x: %x\n", i, word);
+  	}
 }
-
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -250,12 +270,24 @@ void exe_branch(int32_t word)
 
 int8_t memory_byte_read(uint16_t memory_address) 
 {
-	return 0;
+	return ARM->memory[memory_address];
 }
 
-int32_t memory_word_read(uint16_t memory_address) 
+int32_t memory_word_read(uint16_t m) 
 {
-	return 0;
+	int32_t first  = ARM->memory[m+3],
+		   second = ARM->memory[m+2],
+		   third  = ARM->memory[m+1],
+		   fourth = ARM->memory[m+0];
+		   
+	return ((first << 24) + (second << 16) + (third << 8) + fourth); 
+}
+
+
+int32_t test_glue(int8_t a, int8_t b, int8_t c, int8_t d) 
+{
+
+	return ((a << 24) + (b << 16) + (c << 8) + d); 
 }
 
 void memory_byte_write(uint16_t memory_address, int8_t byte) 
