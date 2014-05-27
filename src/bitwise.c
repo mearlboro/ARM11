@@ -30,12 +30,7 @@ int32_t bits_array_to_int(char *bits_array);
 int32_t bits_get(int32_t i, int n, int m)
 {
   int32_t mask = 0;
-  for(int j=n ; j<=m ; ++j)
-  {
-    int32_t x = 1 << j;
-    mask += x;
-  }
-  
+  mask = ((1 << m) - 1) - ((1 << n) - 1) ;
   i = i & mask;
   i = i >> n;
   return i;
