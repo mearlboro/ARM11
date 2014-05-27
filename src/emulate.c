@@ -68,7 +68,6 @@ void exe_data_processing(int32_t word);
 void exe_multiply(int32_t word);
 void exe_branch(int32_t word);
 void print_ARM_state();
-
 int8_t memory_byte_read(uint16_t memory_address);
 int32_t memory_word_read(uint16_t memory_address);
 void memory_byte_write(uint16_t memory_address, int8_t byte);
@@ -80,7 +79,7 @@ int get_CPSR_flag(CPSR_flag_t flag);
 
 // DEBUG/TESTING
 void print_ARM_info();
-void system_exit(char *message); // Don't really like this...
+void system_exit(char *message); 
 int32_t test_glue(int8_t a, int8_t b, int8_t c, int8_t d);
 
 
@@ -191,8 +190,8 @@ int get_CPSR_flag(CPSR_flag_t flag)
 
 void put_CPSR_flag(CPSR_flag_t flag, int bit)
 {
-  if (bit==1) set_CPSR_flag(CPSR_flag_t flag);
-  else clear_CPSR_flag(CPSR_flag_t flag);
+  if (bit == 1) set_CPSR_flag(flag);
+  else clear_CPSR_flag(flag);
 }
 
 
@@ -223,36 +222,41 @@ void decode_instruction(int32_t word)
 }
 
 
-
+// checks the 4-bit conditions at the beginning of instructions
 int check_condition_code(int32_t word)
 {
-	int cond = bits_get(word, 28, 31);
+	int32_t cond = bits_get(word, 28, 31);
 	switch (cond) 
 	{
-		case 0 : return get_CPSR_flag(ZERO); // eq - Z set - equal
-		case 1 : return !get_CPSR_flag(ZERO); // ne - Z clear - not equal
-		case 2 : return get_CPSR_flag(NEGATIVE) == get_CPSR_flag(OVERFLOW); // ge - N equals V - greater or equal
-		case 3 : return get_CPSR_flag(NEGATIVE) != get_CPSR_flag(OVERFLOW);// lt - N not equal to V - less than
-		case 4 : return !get_CPSR_flag(ZERO) && (get_CPSR_flag(NEGATIVE) == get_CPSR_flag(OVERFLOW)); // gt - Z clear AND (N equals V) - greater than
-		case 5 : return get_CPSR_flag(ZERO) || (get_CPSR_flag(NEGATIVE) != get_CPSR_flag(OVERFLOW)); // le - Z set OR (N not equal to V) - less than or equal
-		case 7 : return 1;
+		case 0  : return get_CPSR_flag(ZERO); 
+			// eq - Z set - equal
+		case 1  : return !get_CPSR_flag(ZERO); 
+			// ne - Z clear - not equal
+		case 10 : return get_CPSR_flag(NEGATIVE) == get_CPSR_flag(OVERFLOW); 
+			// ge - N equals V - greater or equal
+		case 11 : return get_CPSR_flag(NEGATIVE) != get_CPSR_flag(OVERFLOW);
+			// lt - N not equal to V - less than
+		case 12 : return !get_CPSR_flag(ZERO) && 
+				(get_CPSR_flag(NEGATIVE) == get_CPSR_flag(OVERFLOW)); 
+			// gt - Z clear AND (N equals V) - greater than
+		case 13 : return get_CPSR_flag(ZERO) || 
+				(get_CPSR_flag(NEGATIVE) != get_CPSR_flag(OVERFLOW)); 
+			// le - Z set OR (N not equal to V) - less than or equal
+		case 14 : return 1;
 		default : return 0;
-
 	}
-
 
 }
 
 
-
+// outputs content of registers and non-zero memory
 void print_ARM_state()
 {
-  // Output content of registers
-	
-  // Oputput content of non-zero memory
-  	printf("Non-zero memory:\n\n");
+  	
+	printf("Non-zero memory:\n\n");
   	printf("Byte by Byte:\n");
-  	for (uint16_t i = 0; i < MEMORY_CAPACITY; i++)
+  	
+	for (uint16_t i = 0; i < MEMORY_CAPACITY; i++)
   	{
   		if (i > 10) break;
   		//int32_t word = memory_word_read(i);
@@ -260,15 +264,16 @@ void print_ARM_state()
 		printf("%i: %x\n", i, memory_byte_read(i));
 		print_bits(memory_byte_read(i));
   	}
-  	printf("\nWord by Word:\n");
-  	for (uint16_t i = 0; i < MEMORY_CAPACITY; i += 4)
+  	
+	printf("\nWord by Word:\n");
+  	
+	for (uint16_t i = 0; i < MEMORY_CAPACITY; i += 4)
   	{
   		int32_t word = memory_word_read(i);
   		if (word == 0) break;
 		printf("0x%i: %x\n", i, word);
 		print_bits(word);
   	}
-
 }
 
 
@@ -278,13 +283,13 @@ void print_ARM_state()
 
 void exe_single_data_transfer(int32_t word) 
 {
-	assert(BIT_GET(word, 26) == 1); 	
 
-	int32_t cond = bits_get(word, 28, 31);
-	int32_t Rn   = bits_get(word, 16, 19);
-	int32_t Rd   = bits_get(word, 12, 15);
-	int32_t off  = bits_get(word,  0, 11);
+	assert(bits_get(word, 26, 27) == 1); 	
+	assert(check_condition_code(word));
 
+	int8_t Rn  = bits_get(word, 16, 19);
+	int8_t Rd  = bits_get(word, 12, 15);
+	int8_t off = bits_get(word,  0, 11);
 	int I = BIT_GET(word, 25);
 	int P = BIT_GET(word, 24);
 	int U = BIT_GET(word, 23);
@@ -294,76 +299,91 @@ void exe_single_data_transfer(int32_t word)
 
 void exe_data_processing(int32_t word) 
 {
-  int32_t opCode   = bits_get(word, 21, 24);
-  int32_t I        = BIT_GET(word, 25);
-  int32_t S        = BIT_GET(word, 20);
-  int32_t Rn       = bits_get(word, 16, 19);
-  int32_t Rd       = bits_get(word, 12, 15);
-  int32_t operand2 = bits_get(word, 0, 11);
+	int32_t opCode   = bits_get(word, 21, 24);
+	int32_t I        = BIT_GET(word, 25);
+	int32_t S        = BIT_GET(word, 20);
+	int32_t Rn       = bits_get(word, 16, 19);
+	int32_t Rd       = bits_get(word, 12, 15);
+	int32_t operand2 = bits_get(word, 0, 11);
 
-  if (I == 1)
-  {
-    int32_t Imm = ZERO_EXT_32(bits_get(operand2, 0, 7));
-    int rotate_amount = bits_get(operand2, 8, 11) << 1;
-    Imm = rotate(Imm, rotate_amount);
-    operand2 = Imm;
-  }
-  else
-  {
-    int32_t Rm         = bits_get(operand2, 0, 3);
-    int32_t shift_reg  = ARM->registers[Rm];
-    int shift_flag     = BIT_GET(operand2, 4);
-    int shift_amount   = 0;
-    if (shift_flag == 0) shift_amount = bits_get(operand2, 7, 11);
-    else
-    {
-      int32_t Rs = ARM->registers[bits_get(operand2, 8, 11)];
-      shift_amount = bits_get(Rs, 0, 8);
-    }
-    int shift_type = bits_get(operand2, 5, 6);
-    switch(shift_type)
-    {
-      case 0 : //logical shit left 
-      {
-        operand2  = shift_value << shift_amount;
-        int carry = 0;
-        if (shift_amount!=0) carry = BIT_GET(shift_value, 31-shift_amount+1);
-        if (S==1) put_CPSR_flag(CARRY, carry);
-        break ;
-      }    
+	if (I == 1)
+	{
+		int32_t Imm = ZERO_EXT_32(bits_get(operand2, 0, 7));
+		int rotate_amount = bits_get(operand2, 8, 11) << 1;
+		Imm = rotate(Imm, rotate_amount);
+		operand2 = Imm;
+	}
+	else
+	{
+		int32_t Rm         = bits_get(operand2, 0, 3);
+		int32_t shift_reg  = ARM->registers[Rm];
+		int shift_flag     = BIT_GET(operand2, 4);
+		int shift_amount   = 0;
+
+		if (shift_flag == 0) shift_amount = bits_get(operand2, 7, 11);
+		else
+		{
+			int32_t Rs = ARM->registers[bits_get(operand2, 8, 11)];
+			shift_amount = bits_get(Rs, 0, 8);
+		}
+
+		int shift_type = bits_get(operand2, 5, 6);
+
+		// switch for the shift type when offset is a shift register	
+		switch(shift_type)
+		{
+			case 0 : //logical shit left 
+			{
+				operand2  = shift_reg << shift_amount;
+				int carry = 0;
+				if (shift_amount!=0) carry = BIT_GET(shift_reg, 31-shift_amount+1);
+				if (S == 1) put_CPSR_flag(CARRY, carry);
+				break;
+			}    
                   
       case 1 : //logical right shift
       {
-        operand2  = shift_value >> shift_amount;
+        operand2  = shift_reg >> shift_amount;
         int carry = 0;
-        if (shift_amount!=0) carry = BIT_GET(shift_value, shift_amount-1);
-        if (S==1) put_CPSR_flag(CARRY, carry);
-        break ;
+        if (shift_amount != 0) carry = BIT_GET(shift_reg, shift_amount-1);
+        if (S == 1) put_CPSR_flag(CARRY, carry);
+        break;
       }
+
       case 2 : //arithmetic right shift
       {
-        operand2 = shift_value >> shift_amount;
+        operand2 = shift_reg >> shift_amount;
+
         int carry = 0;
-        if (shift_amount!=0) carry = BIT_GET(shift_value, shift_amount-1);
-        if (S==1) put_CPSR_flag(CARRY, carry);
-        int bit = BIT_GET(shift_value, 31);
+        if (shift_amount != 0) carry = BIT_GET(shift_reg, shift_amount - 1);
+        if (S == 1) put_CPSR_flag(CARRY, carry);
+        int bit = BIT_GET(shift_reg, 31);
+
         for (int j=0; j<shift_amount; ++j)
-          BIT_PUT(operand2, 31-j, bit);
+          BIT_PUT(operand2, 31 - j, bit);
         break;
       }
+
       case 3 : //rotate right
       {
-        operand2 = rotate(shift_value, shift_amount);
-        break;
+				operand2 = rotate(shift_reg, shift_amount);
+				break;
       }
-      default : system_exit("INVALID INSTR FORMAT");
-    }  
+      
+			default : system_exit("INVALID INSTRUCTION FORMAT");
+		} // end switch(shift_type) 
      
-  switch(opcode)
+
+  /*switch(opcode)
   {
     case 0 : and
+	*/
+
+	} // end if(I == 1)
+
 
 }
+
 
 void exe_multiply(int32_t word) 
 {
@@ -382,22 +402,23 @@ void exe_multiply(int32_t word)
 	}
 	else 
 	{
-	    result += ARM->registers[Rn];
+		result += ARM->registers[Rn];
 		ARM->registers[Rd] = result;
 	}
 	
 	if (S == 1)
 	{
 		// N is set to bit 31 of the result and Z is set if and only if the result is zero.
-		result_bit = BIT_GET(result, 31);
+		int result_bit = BIT_GET(result, 31);
 		if (result_bit == 1) 
-			set_CPRS_flag(NEGATIVE);
+			set_CPSR_flag(NEGATIVE);
 		else 
-			clear_CPRS_flag(NEGATIVE);
+			clear_CPSR_flag(NEGATIVE);
 		
-		if (result == 0) set_CPRS_flag(ZERO);
+		if (result == 0) set_CPSR_flag(ZERO);
 	}
 }
+
 
 void exe_branch(int32_t word) 
 {
@@ -479,7 +500,6 @@ void print_ARM_info()
 	
 	
 	printf("sizeof(*ARM) = %lu bytes.\n", sizeof(*ARM));
-	
 	
 }
 
