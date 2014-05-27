@@ -15,11 +15,94 @@
 // ARM has 17, 32-bit registers
 #define REGISTER_COUNT 17
 
-// MASK FOR JUST THE FIRST 8 BITS - SOLVES SIGNED PROBLEM
+// mask for the first 8 bits
 #define EIGHT_BITS 255
 
+
 ////////////////////////////////////////////////////////////////////////////////
-//  TYPE DEFINITIONS  //////////////////////////////////////////////////////////
+//  INSTRUCTION TYPE DEFINITIONS ///////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+// data processing istructions
+typedef struct DATA_PROCESSING_INSTRUCTION
+{
+	unsigned int Cond     : 4;
+	unsigned int _00      : 2;
+	unsigned int I        : 1;
+	unsigned int OpCode   : 4;
+	unsigned int S        : 1;
+	unsigned int Rn       : 4;
+	unsigned int Rd       : 4;
+	unsigned int Operand2 : 12;
+
+} DATA_PROCESSING_INSTRUCTION;
+
+
+// for operand2 and offset in DATA_PROCESSING_INSTRUCTION
+// and SINGLE_DATA_TRANSFER_INSTRUCTION 
+
+typedef struct IMMEDIATE_REGISTER 
+{
+	unsigned int Rotate : 4;
+	unsigned int Imm    : 8;
+    
+} IMMEDIATE_REGISTER; // rotates the immediate register
+
+
+typedef struct SHIFT_REGISTER
+{
+	unsigned int Shift_amount : 5;
+	unsigned int Shift_type   : 2;
+	unsigned int Shift_flag   : 1;
+	unsigned int Rm           : 4;
+    
+} SHIFT_REGISTER; // performs only shift by constant amount
+
+
+// multiply instruction
+typedef struct MULTIPLY_INSTRUCTION
+{
+    unsigned int Cond    : 4;
+    unsigned int _000000 : 6;
+    unsigned int A       : 1;
+    unsigned int S       : 1;
+    unsigned int Rd      : 4;
+    unsigned int Rn      : 4;
+    unsigned int Rs      : 4;
+    unsigned int _1001   : 4;
+    unsigned int Rm      : 4;
+    
+} MULTIPLY_INSTRUCTION;
+
+
+// single data transfer instruction
+typedef struct SINGLE_DATA_TRANSFER_INSTRUCTION
+{
+    unsigned int Cond   : 4;
+    unsigned int _01    : 2;
+    unsigned int I      : 1;
+    unsigned int P      : 1;
+    unsigned int U      : 1;
+    unsigned int _00    : 2;
+    unsigned int L      : 1;
+    unsigned int Rn     : 4;
+    unsigned int Rd     : 4;
+    unsigned int Offset : 12;
+    
+} SINGLE_DATA_TRANSFER_INSTRUCTION;
+
+
+// branch instruction
+typedef struct BRANCH_INSTRUCTION
+{
+    unsigned int Cond   : 4;
+    unsigned int _1010  : 4;
+    unsigned int Offset : 24;
+    
+} BRANCH_INSTRUCTION;
+
+////////////////////////////////////////////////////////////////////////////////
+//  OTHER TYPE DEFINITIONS /////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
 typedef struct pipeline 
@@ -83,7 +166,7 @@ void system_exit(char *message);
 int32_t test_glue(int8_t a, int8_t b, int8_t c, int8_t d);
 
 // OTHER HELPER FUNCTIONS 
-int32_t immediate_shifted_register(int32_t shifted_register, int8_t S); 
+int32_t immediate_shifted_register(int32_t word12, int8_t S); 
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -127,7 +210,7 @@ int main(int argc, char **argv)
     print_ARM_state();	
     // Fetch instrction at memory[0]. That is the inital value of PC
     // Load initial PC value into registers[PC]
-    //ARM->registers[PC] = memory_word_read(0);
+    // ARM->registers[PC] = memory_word_read(0);
     
     //emulator_loop();
   
@@ -224,7 +307,7 @@ void decode_instruction(int32_t word)
 }
 
 
-// checks the 4-bit conditions at the beginning of instructions
+// checks the 4-bit conditions at the beginning of instruction
 int check_condition_code(int32_t word)
 {
 	int32_t cond = bits_get(word, 28, 31);
@@ -337,12 +420,19 @@ void exe_single_data_transfer(int32_t word)
 void exe_data_processing(int32_t word) 
 // TODO: unfinished!!!!!
 {
-	int8_t opCode    = bits_get(word, 21, 24);
-	int8_t I         = BIT_GET(word, 25);
-	int8_t S         = BIT_GET(word, 20);
-	int8_t Rn        = bits_get(word, 16, 19);
-	int8_t Rd        = bits_get(word, 12, 15);
-	int16_t operand2 = bits_get(word, 0, 11);
+	assert(!BIT_GET(word, 25) && !BIT_GET(word, 26) 
+		&& !(BIT_GET(word, 4) && BIT_GET(word, 7)));
+ 	assert(check_condition_code(word));
+
+	DATA_PROCESSING_INSTRUCTION *instruction 
+		= (DATA_PROCESSING_INSTRUCTION *) &word;
+
+	int32_t I        = instruction->I;
+	int32_t opCode   = instruction->OpCode; 
+	int32_t S        = instruction->S;
+	int32_t Rn       = instruction->Rn;
+	int32_t Rd       = instruction->Rd;
+	int32_t operand2 = instruction->Operand2;
 
 	if (I == 1)
 	{ 
@@ -363,26 +453,37 @@ void exe_data_processing(int32_t word)
 
 // helper function that performs the shifting
 // when shifted_register/offset is a shift register	
-int32_t immediate_shifted_register(int32_t shifted_register, int8_t S) 
+int32_t immediate_shifted_register(int32_t word12, int8_t S) 
 {
-	int8_t Rm           = bits_get(shifted_register, 0, 3);
-	int32_t shift_reg    = ARM->registers[Rm];
-	int shift_flag   = BIT_GET(shifted_register, 4);
-	int8_t shift_amount = 0;
+	SHIFT_REGISTER *shift_register 
+			= (SHIFT_REGISTER *) &word12;
 
-	if (shift_flag == 0) shift_amount = bits_get(shifted_register, 7, 11);
+	int32_t shift_flag = shift_register->Shift_flag; 
+	int32_t shift_amount;
+	
+	if(shift_flag == 0) 
+	{
+		shift_amount = shift_register->Shift_amount;
+	}
 	else
 	{
-		int32_t Rs = ARM->registers[bits_get(shifted_register, 8, 11)];
+		int32_t register_number = shift_register->Shift_amount;
+		BIT_CLEAR(shift_amount, 27);
+		
+		int32_t Rs   = ARM->registers[register_number];
 		shift_amount = bits_get(Rs, 0, 8);
 	}
-	int8_t shift_type = bits_get(shifted_register, 5, 6);
+
+	int32_t shift_type   = shift_register->Shift_type;
+	int32_t Rm           = shift_register->Rm;
+
+	int32_t shift_reg    = ARM->registers[Rm];
 
 	switch(shift_type)
 	{
 		case 0 : //logical shit left 
 		{
-			shifted_register  = shift_reg << shift_amount;
+			word12  = shift_reg << shift_amount;
 			int carry = 0;
 			if (shift_amount!=0) 
 			{
@@ -393,7 +494,7 @@ int32_t immediate_shifted_register(int32_t shifted_register, int8_t S)
 		}    
 		case 1 : //logical right shift
 		{
-			shifted_register  = shift_reg >> shift_amount;
+			word12  = shift_reg >> shift_amount;
 			int carry = 0;
 			if (shift_amount != 0) 
 			{
@@ -404,7 +505,7 @@ int32_t immediate_shifted_register(int32_t shifted_register, int8_t S)
 		}
 		case 2 : //arithmetic right shift
 		{
-			shifted_register = shift_reg >> shift_amount;
+			word12 = shift_reg >> shift_amount;
 			int carry = 0;
 			if (shift_amount != 0)
 			{ 
@@ -416,40 +517,42 @@ int32_t immediate_shifted_register(int32_t shifted_register, int8_t S)
 			int bit = BIT_GET(shift_reg, 31);
 			for (int j=0; j<shift_amount; ++j)
 			{
-				BIT_PUT(shifted_register, 31 - j, bit);
+				bit_put(word12, 31 - j, bit);
 			}
 			break;
 		}
 		case 3 : //rotate right
 		{
-			shifted_register = rotate(shift_reg, shift_amount);
+			word12 = rotate(shift_reg, shift_amount);
 			break;
 		}
 		default : system_exit("INVALID INSTRUCTION FORMAT");
-	} // end switch(shift_type) 
+	} // end switch(shift_type)
 
-	return shifted_register;
+	return word12; 
 
 }
-     
-
- 
-     
+    
 void exe_multiply(int32_t word) 
 {
-	int32_t Rd = bits_get(word, 16, 19);
-	int32_t Rn = bits_get(word, 12, 15);
-	int32_t Rs = bits_get(word, 8, 11);
-	int32_t Rm = bits_get(word, 0, 3);
+
+	assert(!BIT_GET(word, 25) && !BIT_GET(word, 26) 
+		&& BIT_GET(word, 4) && BIT_GET(word, 7));
+ 	assert(check_condition_code(word));
+
+	MULTIPLY_INSTRUCTION *instruction 
+		= (MULTIPLY_INSTRUCTION *) &word;
 	
-	int A = BIT_GET(word, 21);
-	int S = BIT_GET(word, 20);
+	int32_t Rd = instruction->Rd;
+	int32_t Rn = instruction->Rn;
+	int32_t Rs = instruction->Rs;
+	int32_t Rm = instruction->Rm;
+	int A      = instruction->A;
+	int S      = instruction->S;
 	
 	int32_t result = ARM->registers[Rm] * ARM->registers[Rs];
-	if (A == 0) 
-	{
-		ARM->registers[Rd] = result;
-	}
+
+	if (A == 0) ARM->registers[Rd] = result;
 	else 
 	{
 		result += ARM->registers[Rn];
@@ -472,7 +575,13 @@ void exe_multiply(int32_t word)
 
 void exe_branch(int32_t word) 
 {
+	assert(bits_get(word, 26, 27) == 1);
+ 	assert(check_condition_code(word));
 
+	BRANCH_INSTRUCTION *instruction 
+		= (BRANCH_INSTRUCTION *) &word;
+	
+	int32_t offset = instruction->Offset;
 }
 
 
