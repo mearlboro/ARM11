@@ -39,8 +39,16 @@ int32_t bits_get(int32_t i, int n, int m)
 // Sets bits n to m of integer i to the value of bits n to m of integer j
 #define BITS_SET(i, j, n, m) (0) // TODO
 
+// 0 extend to 32-bit
+#define ZERO_EXT_32(i) ((i) & 255)
 
-
+// Puts bit b in int i at pos n
+int32_t BIT_PUT(int32_t i, int n, int b)
+{
+  if (b==1) BIT_SET(i,n); 
+  else BIT_CLEAR(i,n);
+  return i;
+}
 ////////////////////////////////////////////////////////////////////////////////
 //  CORE  //////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -68,6 +76,18 @@ char *int_to_bits_array(int32_t i)
 int32_t bits_array_to_int(char *bits_array) 
 {
 	return 0;
+}
+
+// Rotates bits to right 
+int32_t rotate(int32_t i, int n)
+{
+  for(int j=0; j<n; j++)
+  {
+    int last_bit = BIT_GET(i,0);
+    i >>= 1;
+    BIT_PUT(i, 31, last_bit);
+  }
+  return i;
 }
 
 
