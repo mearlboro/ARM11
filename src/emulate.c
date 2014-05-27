@@ -15,7 +15,8 @@
 // ARM has 17, 32-bit registers
 #define REGISTER_COUNT 17
 
-
+// MASK FOR JUST THE FIRST 8 BITS - SOLVES SIGNED PROBLEM
+#define EIGHT_BITS 255
 
 ////////////////////////////////////////////////////////////////////////////////
 //  TYPE DEFINITIONS  //////////////////////////////////////////////////////////
@@ -228,7 +229,7 @@ void print_ARM_state()
   // Oputput content of non-zero memory
   	printf("Non-zero memory:\n\n");
   	printf("Byte by Byte:\n");
-  	for (uint8_t i = 0; i < MEMORY_CAPACITY; i++)
+  	for (uint16_t i = 0; i < MEMORY_CAPACITY; i++)
   	{
   		if (i > 10) break;
   		//int32_t word = memory_word_read(i);
@@ -285,10 +286,10 @@ int8_t memory_byte_read(uint16_t memory_address)
 
 int32_t memory_word_read(uint16_t m) 
 {
-	int32_t first  = ARM->memory[m+3],
-		   second = ARM->memory[m+2],
-		   third  = ARM->memory[m+1],
-		   fourth = ARM->memory[m+0];
+	int32_t first  = ARM->memory[m+3]&255,
+		   second = ARM->memory[m+2] & EIGHT_BITS,
+		   third  = ARM->memory[m+1] & EIGHT_BITS,
+		   fourth = ARM->memory[m+0] & EIGHT_BITS;
 		   
 	return ((first << 24) | (second << 16) | (third << 8) | fourth); 
 	//return ((fourth << 24) | (third << 16) | (second << 8) | first); 
