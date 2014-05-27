@@ -9,7 +9,6 @@ char *int_to_bits_array(int32_t i);
 int32_t bits_array_to_int(char *bits_array);
 
 
-
 ////////////////////////////////////////////////////////////////////////////////
 //  CONSTANTS AND MACROS  //////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -29,15 +28,15 @@ int32_t bits_array_to_int(char *bits_array);
 // Gets bits n to m of integer i where 0 is the rightmost bit
 int32_t bits_get(int32_t i, int n, int m)
 {
-  int32_t mask = 0;
-  mask = ((1 << m) - 1) - ((1 << n) - 1) ;
-  i = i & mask;
-  i = i >> n;
-  return i;
+	return (i >> n) & ((1 << m) - 1);
 }
 
 // Sets bits n to m of integer i to the value of bits n to m of integer j
-#define BITS_SET(i, j, n, m) (0) // TODO
+int32_t bits_set(int32_t i, int32_t j, int n, int m)
+{	
+	int32_t seq = bits_get(j, n, m);
+	return (i & ~(((1 << (m - n + 1)) - 1) << n)) | (seq << n);
+}
 
 // 0 extend to 32-bit
 #define ZERO_EXT_32(i) ((i) & 255)
@@ -64,18 +63,6 @@ void print_bits(int32_t i)
 		if (c % 8 == 0) printf(" "); 
 	} 
 	printf("\n"); 
-}
-
-// Returns the binary string representation of integer i
-char *int_to_bits_array(int32_t i) 
-{
-	return NULL;
-}
-
-// Returns the integer value of the binary string representation bits_array
-int32_t bits_array_to_int(char *bits_array) 
-{
-	return 0;
 }
 
 // Rotates bits to right 
