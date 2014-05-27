@@ -289,11 +289,26 @@ void exe_single_data_transfer(int32_t word)
 
 	int8_t Rn  = bits_get(word, 16, 19);
 	int8_t Rd  = bits_get(word, 12, 15);
-	int8_t off = bits_get(word,  0, 11);
+	int8_t offset = bits_get(word,  0, 11);
 	int I = BIT_GET(word, 25);
 	int P = BIT_GET(word, 24);
 	int U = BIT_GET(word, 23);
 	int L = BIT_GET(word, 20);
+
+	if (I == 0)
+	{
+		int32_t Imm = ZERO_EXT_32(bits_get(offset, 0, 7));
+		int rotate_amount = bits_get(offset, 8, 11) << 1;
+		Imm = rotate(Imm, rotate_amount);
+		offset = Imm;
+	}
+	else
+	{ 
+		int32_t Rm = bits_get(offset, 0, 3);
+		int32_t shift_reg = ARM->registers[Rm];
+		int shift_flag = BIT_GET(offset, 4);
+		int shift_amount = 0;
+	}
 
 }
 
@@ -341,45 +356,45 @@ void exe_data_processing(int32_t word)
 				break;
 			}    
                   
-      case 1 : //logical right shift
-      {
-        operand2  = shift_reg >> shift_amount;
-        int carry = 0;
-        if (shift_amount != 0) carry = BIT_GET(shift_reg, shift_amount-1);
-        if (S == 1) put_CPSR_flag(CARRY, carry);
-        break;
-      }
-
-      case 2 : //arithmetic right shift
-      {
-        operand2 = shift_reg >> shift_amount;
-
-        int carry = 0;
-        if (shift_amount != 0) carry = BIT_GET(shift_reg, shift_amount - 1);
-        if (S == 1) put_CPSR_flag(CARRY, carry);
-        int bit = BIT_GET(shift_reg, 31);
-
-        for (int j=0; j<shift_amount; ++j)
-          BIT_PUT(operand2, 31 - j, bit);
-        break;
-      }
-
-      case 3 : //rotate right
-      {
-				operand2 = rotate(shift_reg, shift_amount);
+			  case 1 : //logical right shift
+			  {
+				operand2  = shift_reg >> shift_amount;
+				int carry = 0;
+				if (shift_amount != 0) carry = BIT_GET(shift_reg, shift_amount-1);
+				if (S == 1) put_CPSR_flag(CARRY, carry);
 				break;
-      }
-      
-			default : system_exit("INVALID INSTRUCTION FORMAT");
-		} // end switch(shift_type) 
-     
+			  }
 
-  /*switch(opcode)
-  {
-    case 0 : and
-	*/
+			  case 2 : //arithmetic right shift
+			  {
+				operand2 = shift_reg >> shift_amount;
 
-	} // end if(I == 1)
+				int carry = 0;
+				if (shift_amount != 0) carry = BIT_GET(shift_reg, shift_amount - 1);
+				if (S == 1) put_CPSR_flag(CARRY, carry);
+				int bit = BIT_GET(shift_reg, 31);
+
+				for (int j=0; j<shift_amount; ++j)
+				  BIT_PUT(operand2, 31 - j, bit);
+				break;
+			  }
+
+			  case 3 : //rotate right
+			  {
+						operand2 = rotate(shift_reg, shift_amount);
+						break;
+			  }
+			  
+					default : system_exit("INVALID INSTRUCTION FORMAT");
+				} // end switch(shift_type) 
+			 
+
+		  /*switch(opcode)
+		  {
+			case 0 : and
+			*/
+
+			} // end if(I == 1)
 
 
 }
