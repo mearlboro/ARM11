@@ -68,6 +68,7 @@ void exe_data_processing(int32_t word);
 void exe_multiply(int32_t word);
 void exe_branch(int32_t word);
 void print_ARM_state();
+
 int8_t memory_byte_read(uint16_t memory_address);
 int32_t memory_word_read(uint16_t memory_address);
 void memory_byte_write(uint16_t memory_address, int8_t byte);
@@ -76,6 +77,7 @@ int32_t register_read(registerT reg);
 void register_write(registerT reg, int32_t word);
 int check_condition_code(int32_t word);
 int get_CPSR_flag(CPSR_flag_t flag);
+
 // DEBUG/TESTING
 void print_ARM_info();
 void system_exit(char *message); // Don't really like this...
@@ -143,6 +145,7 @@ void system_exit(char *message)
 //  CORE  //////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+// pipeline simulation
 void emulator_loop()
 {
   ARM->pipeline->fetched = ARM->memory[ARM->registers[PC]];
@@ -168,6 +171,8 @@ void emulator_loop()
   }
 }
 
+
+// flag operations
 void clear_CPSR_flag(CPSR_flag_t flag) 
 {
 	BIT_CLEAR(ARM->registers[CPSR], flag);
@@ -177,7 +182,6 @@ void set_CPSR_flag(CPSR_flag_t flag)
 {
 	BIT_SET(ARM->registers[CPSR], flag);
 }
-
 
 int get_CPSR_flag(CPSR_flag_t flag) 
 {
@@ -190,6 +194,8 @@ void put_CPSR_flag(CPSR_flag_t flag, int bit)
   else clear_CPSR_flag(CPSR_flag_t flag);
 }
 
+
+// decode 32-bit instruction
 void decode_instruction(int32_t word)
 {  
   	int code = bits_get(word, 26, 27); 
@@ -216,24 +222,30 @@ void decode_instruction(int32_t word)
 }
 
 
-
+// checks 4-bit condition code at the beginning of instructions
 int check_condition_code(int32_t word)
 {
 	int cond = bits_get(word, 28, 31);
 	switch (cond) 
 	{
-		case 0 : return get_CPSR_flag(ZERO); // eq - Z set - equal
-		case 1 : return !get_CPSR_flag(ZERO); // ne - Z clear - not equal
-		case 2 : return get_CPSR_flag(NEGATIVE) == get_CPSR_flag(OVERFLOW); // ge - N equals V - greater or equal
-		case 3 : return get_CPSR_flag(NEGATIVE) != get_CPSR_flag(OVERFLOW);// lt - N not equal to V - less than
-		case 4 : return !get_CPSR_flag(ZERO) && (get_CPSR_flag(NEGATIVE) == get_CPSR_flag(OVERFLOW)); // gt - Z clear AND (N equals V) - greater than
-		case 5 : return get_CPSR_flag(ZERO) || (get_CPSR_flag(NEGATIVE) != get_CPSR_flag(OVERFLOW)); // le - Z set OR (N not equal to V) - less than or equal
-		case 7 : return 1;
+		case 0  : return get_CPSR_flag(ZERO); 
+			// eq - Z set - equal
+		case 1  : return !get_CPSR_flag(ZERO); 
+			// ne - Z clear - not equal
+		case 2  : return get_CPSR_flag(NEGATIVE) == get_CPSR_flag(OVERFLOW); 
+			// ge - N equals V - greater or equal
+		case 3  : return get_CPSR_flag(NEGATIVE) != get_CPSR_flag(OVERFLOW);
+			// lt - N not equal to V - less than
+		case 4  : return !get_CPSR_flag(ZERO) && 
+				(get_CPSR_flag(NEGATIVE) == get_CPSR_flag(OVERFLOW)); 
+			// gt - Z clear AND (N equals V) - greater than
+		case 5  : return get_CPSR_flag(ZERO) || 
+				(get_CPSR_flag(NEGATIVE) != get_CPSR_flag(OVERFLOW)); 
+			// le - Z set OR (N not equal to V) - less than or equal
+		case 7  : return 1;
 		default : return 0;
-	
+
 	}
-
-
 }
 
 
@@ -271,7 +283,6 @@ void print_ARM_state()
 
 void exe_single_data_transfer(int32_t word) 
 {
-  
     
 }
 
@@ -283,6 +294,7 @@ void exe_data_processing(int32_t word)
   int32_t Rn       = bits_get(word, 16, 19);
   int32_t Rd       = bits_get(word, 12, 15);
   int32_t operand2 = bits_get(word, 0, 11);
+
   if (I == 1)
   {
     int32_t Imm = ZERO_EXT_32(bits_get(operand2, 0, 7));
