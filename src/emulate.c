@@ -48,7 +48,7 @@ typedef enum
 	ZERO 	 = 30,
 	CARRY 	 = 29,
 	OVERFLOW = 28
-} CPSR_flags_t
+} CPSR_flags_t;
 
 ////////////////////////////////////////////////////////////////////////////////
 //  ARM OBJECT  ////////////////////////////////////////////////////////////////
@@ -120,15 +120,16 @@ int main(int argc, char **argv)
     	system_exit(" > Error working with file");
 
 	
-	
+    print_ARM_state();	
     // Fetch instrction at memory[0]. That is the inital value of PC
     // Load initial PC value into registers[PC]
-    ARM->registers[PC] = memory_word_read(0);
+    /*ARM->registers[PC] = memory_word_read(0);
     
     emulator_loop();
-  
+  */
     fclose(file);
     free(ARM);
+    return 0;
 }
 
 void system_exit(char *message)
@@ -141,7 +142,7 @@ void system_exit(char *message)
 //  CORE  //////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-void emulator_loop()
+/*void emulator_loop()
 {
   ARM->pipeline->fetched = ARM->memory[ARM->registers[PC]];
   
@@ -219,7 +220,7 @@ int check_condition_code(int32_t word)
 }
 
 
-
+*/
 void print_ARM_state()
 {
   // Output content of registers
@@ -232,14 +233,16 @@ void print_ARM_state()
   		if (i > 10) break;
   		//int32_t word = memory_word_read(i);
   		
-		printf("%i: %i\n", i, memory_byte_read(i));
+		printf("%i: %x\n", i, memory_byte_read(i));
+		print_bits(memory_byte_read(i));
   	}
   	printf("\nWord by Word:\n");
   	for (uint16_t i = 0; i < MEMORY_CAPACITY; i += 4)
   	{
   		int32_t word = memory_word_read(i);
   		if (word == 0) break;
-		printf("0x%i: %i\n", i, word);
+		printf("0x%i: %x\n", i, word);
+		print_bits(word);
   	}
 
 }
