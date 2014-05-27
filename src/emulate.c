@@ -418,7 +418,6 @@ void exe_single_data_transfer(int32_t word)
 
 
 void exe_data_processing(int32_t word) 
-// TODO: unfinished!!!!!
 {
 	assert(!BIT_GET(word, 25) && !BIT_GET(word, 26) 
 		&& !(BIT_GET(word, 4) && BIT_GET(word, 7)));
@@ -447,6 +446,99 @@ void exe_data_processing(int32_t word)
 	
 	} // end if(I == 1)
 
+	int32_t result;
+
+	int32_t operand1 = ARM->registers[Rn];
+	switch (opCode) 
+	{
+		case 0  :
+		case 8  : // and, tst
+		{
+			result = operand1 & operand2;
+			break;
+		}
+		case 1  :
+		case 9  : // eor, teq		
+		{
+			result = operand1 ^ operand2;
+			break;
+		}
+		case 2  :
+		case 10 : // sub, cmp
+		{
+			result = operand1 - operand2;
+			break;
+		}
+		case 3  : // rsb
+		{
+			result = operand2 - operand1;
+			break;
+		}
+		case 4  : // add
+		{ 
+			result = operand1 + operand2;
+			break;
+		}
+		case 12 : // orr
+		{
+			result = operand1 | operand2;
+			break;
+		}
+		case 13 : // mov
+		{
+			result = operand2;
+			break;
+		}
+		default : result = 0;
+
+	} // end switch (opCode)
+
+	switch (opCode) 
+	{
+		case 8  :
+		case 9  :
+		case 10 : // tst, teq, cmp discarded result
+		{
+			result = 0; 
+			break;
+		}
+		case 0  :
+		case 1  :
+		case 2  :
+		case 3  :
+		case 4  :
+		case 12 :
+		case 13 : // keep result
+		{
+			ARM->registers[Rd] = result; 
+			break;
+		}
+	}
+
+	if (S == 1) // sets flags
+	{
+		if(result == 0) set_CPSR_flag(ZERO); 				// Z
+		put_CPSR_flag(NEGATIVE, BIT_GET(result, 31));	// N
+		
+		switch (opCode) 
+		{
+			case 4 : // add
+			{
+				if (get_CPSR_flag(OVERFLOW) == 1) 
+				{
+					set_CPSR_flag(CARRY); 
+				}
+				else clear_CPSR_flag(CARRY);
+			}
+			case 2  :
+			case 3  :
+			case 10 : // sub, rsb, cmp
+			{
+				// if it produced a borrow? 
+			}
+		}
+	}
+		
 }
 
 
@@ -459,9 +551,9 @@ int32_t immediate_shifted_register(int32_t word12, int8_t S)
 			= (SHIFT_REGISTER *) &word12;
 
 	int32_t shift_flag = shift_register->Shift_flag; 
-	int32_t shift_amount;
+	int32_t shift_amount = 0;
 	
-	if(shift_flag == 0) 
+	if (shift_flag == 0) 
 	{
 		shift_amount = shift_register->Shift_amount;
 	}
@@ -479,7 +571,7 @@ int32_t immediate_shifted_register(int32_t word12, int8_t S)
 
 	int32_t shift_reg    = ARM->registers[Rm];
 
-	switch(shift_type)
+	switch (shift_type)
 	{
 		case 0 : //logical shit left 
 		{
@@ -582,6 +674,12 @@ void exe_branch(int32_t word)
 		= (BRANCH_INSTRUCTION *) &word;
 	
 	int32_t offset = instruction->Offset;
+	offset <<= 2;
+	offset = ZERO_EXT_32(offset);
+
+	ARM->registers[PC]    += (offset - 8);
+	ARM->pipeline->fetched = ARM->memory[0];
+	ARM->pipeline->decode  = ARM->memory[0];
 }
 
 
