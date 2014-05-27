@@ -49,7 +49,7 @@ typedef enum
 	ZERO 	 = 30,
 	CARRY 	 = 29,
 	OVERFLOW = 28
-} CPSR_flags_t;
+} CPSR_flag_t;
 
 ////////////////////////////////////////////////////////////////////////////////
 //  ARM OBJECT  ////////////////////////////////////////////////////////////////
@@ -76,6 +76,8 @@ void memory_byte_write(uint16_t memory_address, int8_t byte);
 void memory_word_write(uint16_t memory_address, int32_t word);
 int32_t register_read(register_t reg);
 void register_write(register_t reg, int32_t word);
+int check_condition_code(int32_t word);
+int get_CPSR_flag(CPSR_flag_t flag);
 // DEBUG/TESTING
 void print_ARM_info();
 void system_exit(char *message); // Don't really like this...
@@ -124,10 +126,10 @@ int main(int argc, char **argv)
     print_ARM_state();	
     // Fetch instrction at memory[0]. That is the inital value of PC
     // Load initial PC value into registers[PC]
-    /*ARM->registers[PC] = memory_word_read(0);
+    //ARM->registers[PC] = memory_word_read(0);
     
-    emulator_loop();
-  */
+    //emulator_loop();
+  
     fclose(file);
     free(ARM);
     return 0;
@@ -143,7 +145,7 @@ void system_exit(char *message)
 //  CORE  //////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-/*void emulator_loop()
+void emulator_loop()
 {
   ARM->pipeline->fetched = ARM->memory[ARM->registers[PC]];
   
@@ -168,10 +170,20 @@ void system_exit(char *message)
   }
 }
 
-
-int get_CPSR_flag(CPSR_flag_t) 
+void clear_CPSR_flag(CPSR_flag_t flag) 
 {
-	return BIT_GET(ARM->registers[CPSR], CPSR_flag_t);
+	BIT_CLEAR(ARM->registers[CPSR], flag);
+}
+
+void set_CPSR_flag(CPSR_flag_t flag) 
+{
+	BIT_SET(ARM->registers[CPSR], flag);
+}
+
+
+int get_CPSR_flag(CPSR_flag_t flag) 
+{
+	return BIT_GET(ARM->registers[CPSR], flag);
 }
 
 void decode_instruction(int32_t word)
@@ -221,7 +233,7 @@ int check_condition_code(int32_t word)
 }
 
 
-*/
+
 void print_ARM_state()
 {
   // Output content of registers
@@ -265,7 +277,36 @@ void exe_data_processing(int32_t word)
 
 void exe_multiply(int32_t word) 
 {
-
+	int Rd = bits_get(word, 16, 19);
+	int Rn = bits_get(word, 12, 15);
+	int Rs = bits_get(word, 8, 11);
+	int Rm = bits_get(word, 0, 3);
+	
+	int A = BIT_GET(word, 21);
+	int S = BIT_GET(word, 20);
+	
+	int result = ARM->registers[Rm] * ARM->registers[Rs];
+	if (A == 0) 
+	{
+		ARM->registers[Rd] = result;
+	}
+	else 
+	{
+	    result += ARM->registers[Rn];
+		ARM->registers[Rd] = result;
+	}
+	
+	if (S == 1)
+	{
+		// N is set to bit 31 of the result and Z is set if and only if the result is zero.
+		result_bit = BIT_GET(result, 31);
+		if (result_bit == 1) 
+			set_CPRS_flag(NEGATIVE);
+		else 
+			clear_CPRS_flag(NEGATIVE);
+		
+		if (result == 0) set_CPRS_flag(ZERO);
+	}
 }
 
 void exe_branch(int32_t word) 
