@@ -41,7 +41,7 @@ typedef enum
   	SP, LR, 											 
   	PC,												     
   	CPSR													 
-} register_t;
+} registerT;
 
 typedef enum
 {
@@ -72,8 +72,8 @@ int8_t memory_byte_read(uint16_t memory_address);
 int32_t memory_word_read(uint16_t memory_address);
 void memory_byte_write(uint16_t memory_address, int8_t byte);
 void memory_word_write(uint16_t memory_address, int32_t word);
-int32_t register_read(register_t reg);
-void register_write(register_t reg, int32_t word);
+int32_t register_read(registerT reg);
+void register_write(registerT reg, int32_t word);
 int check_condition_code(int32_t word);
 int get_CPSR_flag(CPSR_flag_t flag);
 // DEBUG/TESTING
@@ -184,6 +184,12 @@ int get_CPSR_flag(CPSR_flag_t flag)
 	return BIT_GET(ARM->registers[CPSR], flag);
 }
 
+void put_CPSR_flag(CPSR_flag_t flag, int bit)
+{
+  if (bit==1) set_CPSR_flag(CPSR_flag_t flag);
+  else clear_CPSR_flag(CPSR_flag_t flag);
+}
+
 void decode_instruction(int32_t word)
 {  
   	int code = bits_get(word, 26, 27); 
@@ -281,20 +287,87 @@ void exe_single_data_transfer(int32_t word)
 
 void exe_data_processing(int32_t word) 
 {
+  int32_t opCode   = bits_get(word, 21, 24);
+  int32_t I        = BIT_GET(word, 25);
+  int32_t S        = BIT_GET(word, 20);
+  int32_t Rn       = bits_get(word, 16, 19);
+  int32_t Rd       = bits_get(word, 12, 15);
+  int32_t operand2 = bits_get(word, 0, 11);
+  if (I == 1)
+  {
+    int32_t Imm = ZERO_EXT_32(bits_get(operand2, 0, 7));
+    int rotate_amount = bits_get(operand2, 8, 11) << 1;
+    Imm = rotate(Imm, rotate_amount);
+    operand2 = Imm;
+  }
+  else
+  {
+    int32_t Rm         = bits_get(operand2, 0, 3);
+    int32_t shift_reg  = ARM->registers[Rm];
+    int shift_flag     = BIT_GET(operand2, 4);
+    int shift_amount   = 0;
+    if (shift_flag == 0) shift_amount = bits_get(operand2, 7, 11);
+    else
+    {
+      int32_t Rs = ARM->registers[bits_get(operand2, 8, 11)];
+      shift_amount = bits_get(Rs, 0, 8);
+    }
+    int shift_type = bits_get(operand2, 5, 6);
+    switch(shift_type)
+    {
+      case 0 : //logical shit left 
+      {
+        operand2  = shift_value << shift_amount;
+        int carry = 0;
+        if (shift_amount!=0) carry = BIT_GET(shift_value, 31-shift_amount+1);
+        if (S==1) put_CPSR_flag(CARRY, carry);
+        break ;
+      }    
+                  
+      case 1 : //logical right shift
+      {
+        operand2  = shift_value >> shift_amount;
+        int carry = 0;
+        if (shift_amount!=0) carry = BIT_GET(shift_value, shift_amount-1);
+        if (S==1) put_CPSR_flag(CARRY, carry);
+        break ;
+      }
+      case 2 : //arithmetic right shift
+      {
+        operand2 = shift_value >> shift_amount;
+        int carry = 0;
+        if (shift_amount!=0) carry = BIT_GET(shift_value, shift_amount-1);
+        if (S==1) put_CPSR_flag(CARRY, carry);
+        int bit = BIT_GET(shift_value, 31);
+        for (int j=0; j<shift_amount; ++j)
+          BIT_PUT(operand2, 31-j, bit);
+        break;
+      }
+      case 3 : //rotate right
+      {
+        operand2 = rotate(shift_value, shift_amount);
+        break;
+      }
+      default : system_exit("INVALID INSTR FORMAT");
+    }  
+     
+  switch(opcode)
+  {
+    case 0 : and
 
 }
 
 void exe_multiply(int32_t word) 
 {
-	int Rd = bits_get(word, 16, 19);
-	int Rn = bits_get(word, 12, 15);
-	int Rs = bits_get(word, 8, 11);
-	int Rm = bits_get(word, 0, 3);
+	int32_t Rd = bits_get(word, 16, 19);
+	int32_t Rn = bits_get(word, 12, 15);
+	int32_t Rs = bits_get(word, 8, 11);
+	int32_t Rm = bits_get(word, 0, 3);
 	
 	int A = BIT_GET(word, 21);
 	int S = BIT_GET(word, 20);
 	
-	int result = ARM->registers[Rm] * ARM->registers[Rs];
+	int32_t result = ARM->registers[Rm] * ARM->registers[Rs];
 	if (A == 0) 
 	{
 		ARM->registers[Rd] = result;
@@ -362,12 +435,12 @@ void memory_word_write(uint16_t memory_address, int32_t word)
 
 }
 
-int32_t register_read(register_t reg) 
+int32_t register_read(registerT reg) 
 {
 	return 0;
 }
 
-void register_write(register_t reg, int32_t word) 
+void register_write(registerT reg, int32_t word) 
 {
 
 }
