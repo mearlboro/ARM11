@@ -265,6 +265,17 @@ void print_ARM_state()
 
 void exe_single_data_transfer(int32_t word) 
 {
+	assert(BIT_GET(word, 26) == 1); 	
+
+	int32_t cond = bits_get(word, 28, 31);
+	int32_t Rn   = bits_get(word, 16, 19);
+	int32_t Rd   = bits_get(word, 12, 15);
+	int32_t off  = bits_get(word,  0, 11);
+
+	int I = BIT_GET(word, 25);
+	int P = BIT_GET(word, 24);
+	int U = BIT_GET(word, 23);
+	int L = BIT_GET(word, 20);
 
 }
 
