@@ -175,7 +175,6 @@ int32_t immediate_shifted_register(int32_t word12, int8_t S);
 
 int main(int argc, char **argv) 
 {
-
     printf(" > Running ARM Emulator v1.0 (%s)\n", argv[0]);
     
     if (argc < 2 || argv[1] == NULL) 
@@ -205,14 +204,13 @@ int main(int argc, char **argv)
 
     if (ferror(file)) 
     	system_exit(" > Error working with file");
-
 	
-    print_ARM_state();	
+    // print_ARM_state();	
     // Fetch instrction at memory[0]. That is the inital value of PC
     // Load initial PC value into registers[PC]
-    // ARM->registers[PC] = memory_word_read(0);
+    ARM->registers[PC] = memory_word_read(0);
     
-    //emulator_loop();
+    emulator_loop();
   
     fclose(file);
     free(ARM);
@@ -517,7 +515,7 @@ void exe_data_processing(int32_t word)
 
 	if (S == 1) // sets flags
 	{
-		if(result == 0) set_CPSR_flag(ZERO); 				// Z
+		if(result == 0) set_CPSR_flag(ZERO); 		// Z
 		put_CPSR_flag(NEGATIVE, BIT_GET(result, 31));	// N
 		
 		switch (opCode) 
@@ -534,7 +532,11 @@ void exe_data_processing(int32_t word)
 			case 3  :
 			case 10 : // sub, rsb, cmp
 			{
-				// if it produced a borrow? 
+				if (get_CPSR_flag(OVERFLOW) == 0) 
+				{
+					set_CPSR_flag(CARRY); 
+				}
+				else clear_CPSR_flag(CARRY);
 			}
 		}
 	}
