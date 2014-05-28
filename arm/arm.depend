@@ -1,0 +1,21 @@
+# depslib dependency file v1.0
+1401281730 source:/homes/ir213/Desktop/ARMPROJ/arm11_22/src/bitwise.c
+	<stdio.h>
+	<stdint.h>
+
+1401288226 source:/homes/ir213/Desktop/ARMPROJ/arm11_22/src/emulate.c
+	<stdlib.h>
+	<stdint.h>
+	<assert.h>
+	<string.h>
+	<stdio.h>
+	"bitwise.h"
+
+1401281730 /homes/ir213/Desktop/ARMPROJ/arm11_22/src/bitwise.c
+	<stdio.h>
+	<stdint.h>
+
+1401288700 /homes/ir213/Desktop/ARMPROJ/arm11_22/src/bitwise.h
+	<stdio.h>
+	<stdint.h>
+

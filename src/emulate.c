@@ -26,15 +26,14 @@
 // data processing istructions
 typedef struct DATA_PROCESSING_INSTRUCTION
 {
-	unsigned int Cond     : 4;
-	unsigned int _00      : 2;
-	unsigned int I        : 1;
-	unsigned int OpCode   : 4;
-	unsigned int S        : 1;
-	unsigned int Rn       : 4;
-	unsigned int Rd       : 4;
 	unsigned int Operand2 : 12;
-
+	unsigned int Rd       : 4;
+	unsigned int Rn       : 4;
+	unsigned int S        : 1;
+	unsigned int OpCode   : 4;
+	unsigned int I        : 1;
+	unsigned int _00      : 2;
+	unsigned int Cond     : 4;
 } DATA_PROCESSING_INSTRUCTION;
 
 
@@ -182,6 +181,7 @@ int main(int argc, char **argv)
 
 
     ARM = calloc(1, sizeof(ARM_t));
+    ARM->pipeline = calloc(1, sizeof(pipeline_t));
     if (ARM == NULL) system_exit(" > Fatal memory-related error");
 
 
@@ -208,8 +208,8 @@ int main(int argc, char **argv)
     // print_ARM_state();
     // Fetch instrction at memory[0]. That is the inital value of PC
     // Load initial PC value into registers[PC]
-    ARM->registers[PC] = memory_word_read(0);
-    //print_ARM_state();
+    ARM->registers[PC] = 0;
+    print_ARM_state();
     emulator_loop();
 
     fclose(file);
@@ -230,7 +230,9 @@ void system_exit(char *message)
 // pipeline simulation
 void emulator_loop()
 {
-  ARM->pipeline->fetched = ARM->registers[PC];
+  int32_t reg = memory_word_read(ARM->registers[PC]);
+
+  ARM->pipeline->fetched = reg;
 
   ARM->registers[PC] += 4;
 
@@ -238,7 +240,7 @@ void emulator_loop()
   {
   	ARM->pipeline->decode = ARM->pipeline->fetched;
 
-  	ARM->pipeline->fetched = ARM->memory[ARM->registers[PC]];
+  	ARM->pipeline->fetched = memory_word_read(ARM->registers[PC]);
 
   	ARM->registers[PC] += 4;
 
@@ -315,17 +317,17 @@ int check_condition_code(int32_t word)
 			// eq - Z set - equal
 		case 1  : return !get_CPSR_flag(ZERO);
 			// ne - Z clear - not equal
-		case 10 : return get_CPSR_flag(NEGATIVE) == get_CPSR_flag(OVERFLOW);
+		case -6 : return get_CPSR_flag(NEGATIVE) == get_CPSR_flag(OVERFLOW);
 			// ge - N equals V - greater or equal
-		case 11 : return get_CPSR_flag(NEGATIVE) != get_CPSR_flag(OVERFLOW);
+		case -5 : return get_CPSR_flag(NEGATIVE) != get_CPSR_flag(OVERFLOW);
 			// lt - N not equal to V - less than
-		case 12 : return !get_CPSR_flag(ZERO) &&
+		case -4 : return !get_CPSR_flag(ZERO) &&
 				(get_CPSR_flag(NEGATIVE) == get_CPSR_flag(OVERFLOW));
 			// gt - Z clear AND (N equals V) - greater than
-		case 13 : return get_CPSR_flag(ZERO) ||
+		case -3 : return get_CPSR_flag(ZERO) ||
 				(get_CPSR_flag(NEGATIVE) != get_CPSR_flag(OVERFLOW));
 			// le - Z set OR (N not equal to V) - less than or equal
-		case 14 : return 1;
+		case -2 : return 1;
 		default : return 0;
 	}
 
@@ -354,7 +356,7 @@ void print_ARM_state()
   	{
   		int32_t word = memory_word_read(i);
   		if (word == 0) break;
-		printf("0x%i: %x\n", i, word);
+		printf("0x%i: %i\n", i, word);
 		print_bits(word);
   	}
 
@@ -423,9 +425,9 @@ void exe_single_data_transfer(int32_t word)
 
 void exe_data_processing(int32_t word)
 {
-	assert(!BIT_GET(word, 25) && !BIT_GET(word, 26)
+	/*assert(!BIT_GET(word, 25) && !BIT_GET(word, 26)
 		&& !(BIT_GET(word, 4) && BIT_GET(word, 7)));
- 	assert(check_condition_code(word));
+ 	assert(check_condition_code(word));*/
 
 	DATA_PROCESSING_INSTRUCTION *instruction
 		= (DATA_PROCESSING_INSTRUCTION *) &word;
@@ -703,7 +705,7 @@ int8_t memory_byte_read(uint16_t memory_address)
 
 int32_t memory_word_read(uint16_t m)
 {
-	int32_t first  = ARM->memory[m+3]&255,
+	int32_t first  = ARM->memory[m+3]& EIGHT_BITS,
 		   second = ARM->memory[m+2] & EIGHT_BITS,
 		   third  = ARM->memory[m+1] & EIGHT_BITS,
 		   fourth = ARM->memory[m+0] & EIGHT_BITS;
