@@ -146,7 +146,7 @@ void exe_single_data_transfer(int32_t word);
 void exe_data_processing(int32_t word);
 void exe_multiply(int32_t word);
 void exe_branch(int32_t word);
-void print_ARM_state();
+int32_t immediate_shifted_register(int32_t word12, int8_t S);
 int8_t memory_byte_read(uint16_t memory_address);
 int32_t memory_word_read(uint16_t memory_address);
 void memory_byte_write(uint16_t memory_address, int8_t byte);
@@ -161,56 +161,92 @@ void print_ARM_info();
 void system_exit(char *message);
 int32_t test_glue(int8_t a, int8_t b, int8_t c, int8_t d);
 
-// OTHER HELPER FUNCTIONS
-int32_t immediate_shifted_register(int32_t word12, int8_t S);
+// READ/WRITE
+void print_ARM_state();
+void binary_file_read();
 
 
 ////////////////////////////////////////////////////////////////////////////////
 //  MAIN  //////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+// reads the binary file and loads data into ARM memory
+void binary_file_read(char* filename) 
+{
+	FILE *file = fopen(filename, "rb");
+	if (file == NULL)
+		system_exit(" > Error opening input file");
+
+	if (fseek(file, 0, SEEK_END) != 0)
+		system_exit(" > Error reading file here");
+
+	long bytes = ftell(file);
+
+	rewind(file);
+
+	if (fread(ARM->memory, 1, bytes, file) != bytes)
+		system_exit(" > Error reading file lel");
+
+	if (ferror(file))
+		system_exit(" > Error working with file");
+
+	fclose(file);
+}
+
+// outputs content of registers and non-zero memory
+void print_ARM_state()
+{
+	FILE *out = fopen("test.out","w");
+	if (out == NULL)
+		system_exit("");
+
+
+	fprintf(out, "Registers:\n");
+	for (int i=0; i<REGISTER_COUNT - 4; i++)
+	{
+		fprintf(out, "$%-3i:%11i (0x%08x)\n", i, ARM->registers[i], ARM->registers[i]);
+	}
+
+	fprintf(out, "PC  :%11i (0x%08x)\n",ARM->registers[PC], ARM->registers[PC]);
+	fprintf(out, "CPSR:%11i (0x%08x)\n",ARM->registers[CPSR], ARM->registers[CPSR]);
+	fprintf(out, "Non-zero memory:\n");
+
+  	for (int i=0; i<MEMORY_CAPACITY; i+=4)
+	{
+		if (memory_word_read(i) == 0) break;
+		fprintf(out, "0x%08x: 0x%02x%02x%02x%02x\n", i,
+		ARM->memory[i]&EIGHT_BITS,
+		ARM->memory[i+1]&EIGHT_BITS,
+		ARM->memory[i+2]&EIGHT_BITS,
+		ARM->memory[i+3]&EIGHT_BITS);
+	}
+
+	fclose(out);
+}
+
 int main(int argc, char **argv)
 {
-    printf(" > Running ARM Emulator v1.0 (%s)\n", argv[0]);
+	printf(" > Running ARM Emulator v1.0 (%s)\n", argv[0]);
 
-    if (argc < 2 || argv[1] == NULL)
-        system_exit(" > Usage: emulate <input.bin>\n > Terminated\n");
+	if (argc < 2 || argv[1] == NULL)
+		system_exit(" > Usage: emulate <input.bin>\n > Terminated\n");
 
+	// allocating memory for the ARM
+	ARM = calloc(1, sizeof(ARM_t));
+	ARM->pipeline = calloc(1, sizeof(pipeline_t));
+	if (ARM == NULL) system_exit(" > Fatal memory-related error");
+	
+	// read binary file
+	binary_file_read(argv[1]);
 
-    ARM = calloc(1, sizeof(ARM_t));
-    ARM->pipeline = calloc(1, sizeof(pipeline_t));
-    if (ARM == NULL) system_exit(" > Fatal memory-related error");
+	// Fetch instrction at memory[0]. That is the inital value of PC
+	// Load initial PC value into registers[PC]
+	ARM->registers[PC] = 0;
+	emulator_loop();
+	print_ARM_state();
 
-
-    FILE *file = fopen(argv[1], "rb");
-    if (file == NULL)
-    	system_exit(" > Error opening input file");
-
-
-    if (fseek(file, 0, SEEK_END) != 0)
-    	system_exit(" > Error reading file here");
-
-    long bytes = ftell(file);
-
-    rewind(file);
-
-
-    if (fread(ARM->memory, 1, bytes, file) != bytes)
-  		system_exit(" > Error reading file lol");
-
-
-    if (ferror(file))
-    	system_exit(" > Error working with file");
-
-    // print_ARM_state();
-    // Fetch instrction at memory[0]. That is the inital value of PC
-    // Load initial PC value into registers[PC]
-    ARM->registers[PC] = 0;
-    emulator_loop();
-    print_ARM_state();
-    fclose(file);
-    free(ARM);
-    return 0;
+	free(ARM);
+	return 0;
 }
 
 void system_exit(char *message)
@@ -330,54 +366,6 @@ int check_condition_code(int32_t word)
 }
 
 
-// outputs content of registers and non-zero memory
-void print_ARM_state()
-{
-
-	printf("Registers:\n");
-	for (uint16_t i = 0; i < REGISTER_COUNT-2; i++)
-    {
-        printf("$%-3i:%11i (0x%08x)\n", i, ARM->registers[i], ARM->registers[i]);
-    }
-    printf("PC  :%11i (0x%08x)\n",ARM->registers[PC], ARM->registers[PC]);
-    printf("CPSR:%11i (0x%08x)\n",ARM->registers[CPSR], ARM->registers[CPSR]);
-	printf("Non-zero memory:\n");
-  	for(uint16_t i = 0; i < MEMORY_CAPACITY; i += 4)
-    {
-        if(memory_word_read(i) == 0) break;
-        printf("0x%08i: 0x%02x%02x%02x%02x\n", i,
-               ARM->memory[i]&EIGHT_BITS,
-               ARM->memory[i+1]&EIGHT_BITS,
-               ARM->memory[i+2]&EIGHT_BITS,
-               ARM->memory[i+3]&EIGHT_BITS);
-    }
-  	/*printf("Byte by Byte:\n");
-
-	for (uint16_t i = 0; i < MEMORY_CAPACITY; i++)
-  	{
-  		if (i > 10) break;
-  		//int32_t word = memory_word_read(i);
-
-		printf("%i: %x\n", i, memory_byte_read(i));
-		print_bits(memory_byte_read(i));
-  	}
-
-	printf("\nWord by Word:\n");
-
-	for (uint16_t i = 0; i < MEMORY_CAPACITY; i += 4)
-  	{
-  		int32_t word = memory_word_read(i);
-  		if (word == 0) break;
-		printf("0x%i: %x\n", i, word);
-		print_bits(word);
-  	}
-
-  	printf("\nREGISTERS:\n");
-  	for (int i = 0; i < REGISTER_COUNT; i++)
-    {
-        printf("#%2i: %i\n",i,ARM->registers[i]);
-    }*/
-}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -387,8 +375,8 @@ void print_ARM_state()
 void exe_single_data_transfer(int32_t word)
 {
 
-	assert(bits_get(word, 26, 27) == 2);
-	assert(check_condition_code(word));
+	/*assert(bits_get(word, 26, 27) == 2);
+	*/
 
 	int32_t Rn  = bits_get(word, 16, 19);
 	int32_t Rd  = bits_get(word, 12, 15);
@@ -511,6 +499,34 @@ void exe_data_processing(int32_t word)
 
 	} // end switch (opCode)
 
+	if (S == 1) // sets flags
+	{
+		if(result == 0) set_CPSR_flag(ZERO); 		// Z
+		put_CPSR_flag(NEGATIVE, BIT_GET(result, 31));	// N
+
+		switch (opCode)
+		{
+			case 4 : // add
+			{
+				if (get_CPSR_flag(OVERFLOW) == 1)
+				{
+					set_CPSR_flag(CARRY);
+				}
+				else clear_CPSR_flag(CARRY);
+			}
+			case 2  :
+			case 3  :
+			case 10 : // sub, rsb, cmp
+			{
+				if (result < 0) // TODO FUYVK&CRGBIC*£&$$^"!DASKOKOSCHLAFFEN
+				{
+					set_CPSR_flag(CARRY);
+				}
+				else clear_CPSR_flag(CARRY);
+			}
+		}
+	} // end if (S == 1)
+
 	switch (opCode)
 	{
 		case 8  :
@@ -531,35 +547,8 @@ void exe_data_processing(int32_t word)
 			ARM->registers[Rd] = result;
 			break;
 		}
-	}
+	} // end switch (opCode)
 
-	if (S == 1) // sets flags
-	{
-		if(result == 0) set_CPSR_flag(ZERO); 		// Z
-		put_CPSR_flag(NEGATIVE, BIT_GET(result, 31));	// N
-
-		switch (opCode)
-		{
-			case 4 : // add
-			{
-				if (get_CPSR_flag(OVERFLOW) == 1)
-				{
-					set_CPSR_flag(CARRY);
-				}
-				else clear_CPSR_flag(CARRY);
-			}
-			case 2  :
-			case 3  :
-			case 10 : // sub, rsb, cmp
-			{
-				if (get_CPSR_flag(OVERFLOW) == 0)
-				{
-					set_CPSR_flag(CARRY);
-				}
-				else clear_CPSR_flag(CARRY);
-			}
-		}
-	}
 
 }
 
@@ -575,6 +564,7 @@ int32_t immediate_shifted_register(int32_t word12, int8_t S)
 	int32_t shift_flag = shift_register->Shift_flag;
 	int32_t shift_amount = 0;
 
+
 	if (shift_flag == 0)
 	{
 		shift_amount = shift_register->Shift_amount;
@@ -586,12 +576,14 @@ int32_t immediate_shifted_register(int32_t word12, int8_t S)
 
 		int32_t Rs   = ARM->registers[register_number];
 		shift_amount = bits_get(Rs, 0, 8);
-	}
+	} // end if (shift_flag == 0)
+
 
 	int32_t shift_type   = shift_register->Shift_type;
 	int32_t Rm           = shift_register->Rm;
 
 	int32_t shift_reg    = ARM->registers[Rm];
+
 
 	switch (shift_type)
 	{
@@ -601,7 +593,7 @@ int32_t immediate_shifted_register(int32_t word12, int8_t S)
 			int carry = 0;
 			if (shift_amount!=0)
 			{
-				carry = BIT_GET(shift_reg, 31-shift_amount+1);
+				carry = BIT_GET(shift_reg, 31 - shift_amount + 1);
 			}
 			if (S == 1) put_CPSR_flag(CARRY, carry);
 			break;
@@ -641,7 +633,7 @@ int32_t immediate_shifted_register(int32_t word12, int8_t S)
 			break;
 		}
 		default : system_exit("INVALID INSTRUCTION FORMAT");
-	} // end switch(shift_type)
+	} // end switch (shift_type)
 
 	return word12;
 
@@ -675,7 +667,8 @@ void exe_multiply(int32_t word)
 
 	if (S == 1)
 	{
-		// N is set to bit 31 of the result and Z is set if and only if the result is zero.
+		// N is set to bit 31 of the result and 
+		// Z is set if and only if the result is zero.
 		int result_bit = BIT_GET(result, 31);
 		if (result_bit == 1)
 			set_CPSR_flag(NEGATIVE);
@@ -689,19 +682,15 @@ void exe_multiply(int32_t word)
 
 void exe_branch(int32_t word)
 {
-	assert(bits_get(word, 26, 27) == 1);
- 	assert(check_condition_code(word));
+	/*assert(bits_get(word, 26, 27) == 1);*/
 
 	BRANCH_INSTRUCTION *instruction
 		= (BRANCH_INSTRUCTION *) &word;
 
-	int32_t offset = instruction->Offset;
-	offset <<= 2;
-	offset = ZERO_EXT_32(offset);
+	int32_t offset = (instruction->Offset) << 2;
 
-	ARM->registers[PC]    += (offset - 8);
+	ARM->registers[PC]    += offset; // -8 bits ??
 	ARM->pipeline->fetched = ARM->memory[0];
-	ARM->pipeline->decode  = ARM->memory[0];
 }
 
 
