@@ -346,10 +346,10 @@ void print_ARM_state()
     {
         if(memory_word_read(i) == 0) break;
         printf("0x%08i: 0x%02x%02x%02x%02x\n", i,
-               ARM->memory[i+3]&EIGHT_BITS,
-               ARM->memory[i+2]&EIGHT_BITS,
+               ARM->memory[i]&EIGHT_BITS,
                ARM->memory[i+1]&EIGHT_BITS,
-               ARM->memory[i]&EIGHT_BITS);
+               ARM->memory[i+2]&EIGHT_BITS,
+               ARM->memory[i+3]&EIGHT_BITS);
     }
   	/*printf("Byte by Byte:\n");
 
