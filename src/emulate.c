@@ -42,62 +42,59 @@ typedef struct DATA_PROCESSING_INSTRUCTION
 
 typedef struct IMMEDIATE_REGISTER
 {
-	unsigned int Rotate : 4;
 	unsigned int Imm    : 8;
+	unsigned int Rotate : 4;
 
 } IMMEDIATE_REGISTER; // rotates the immediate register
 
 
 typedef struct SHIFT_REGISTER
 {
-	unsigned int Shift_amount : 5;
-	unsigned int Shift_type   : 2;
-	unsigned int Shift_flag   : 1;
 	unsigned int Rm           : 4;
-
+	unsigned int Shift_flag   : 1;
+	unsigned int Shift_type   : 2;
+	unsigned int Shift_amount : 5;
 } SHIFT_REGISTER; // performs only shift by constant amount
 
 
 // multiply instruction
 typedef struct MULTIPLY_INSTRUCTION
 {
-    unsigned int Cond    : 4;
-    unsigned int _000000 : 6;
-    unsigned int A       : 1;
-    unsigned int S       : 1;
-    unsigned int Rd      : 4;
-    unsigned int Rn      : 4;
-    unsigned int Rs      : 4;
-    unsigned int _1001   : 4;
     unsigned int Rm      : 4;
-
+    unsigned int _1001   : 4;
+    unsigned int Rs      : 4;
+    unsigned int Rn      : 4;
+    unsigned int Rd      : 4;
+    unsigned int S       : 1;
+    unsigned int A       : 1;
+    unsigned int _000000 : 6;
+    unsigned int Cond    : 4;
 } MULTIPLY_INSTRUCTION;
 
 
 // single data transfer instruction
 typedef struct SINGLE_DATA_TRANSFER_INSTRUCTION
 {
-    unsigned int Cond   : 4;
-    unsigned int _01    : 2;
-    unsigned int I      : 1;
-    unsigned int P      : 1;
-    unsigned int U      : 1;
-    unsigned int _00    : 2;
-    unsigned int L      : 1;
-    unsigned int Rn     : 4;
-    unsigned int Rd     : 4;
     unsigned int Offset : 12;
-
+    unsigned int Rd     : 4;
+    unsigned int Rn     : 4;
+    unsigned int L      : 1;
+    unsigned int _00    : 2;
+    unsigned int U      : 1;
+    unsigned int P      : 1;
+    unsigned int I      : 1;
+    unsigned int _01    : 2;
+    unsigned int Cond   : 4;
 } SINGLE_DATA_TRANSFER_INSTRUCTION;
 
 
 // branch instruction
 typedef struct BRANCH_INSTRUCTION
 {
-    unsigned int Cond   : 4;
-    unsigned int _1010  : 4;
-    unsigned int Offset : 24;
 
+    unsigned int Offset : 24;
+    unsigned int _1010  : 4;
+    unsigned int Cond   : 4;
 } BRANCH_INSTRUCTION;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -638,9 +635,9 @@ int32_t immediate_shifted_register(int32_t word12, int8_t S)
 void exe_multiply(int32_t word)
 {
 
-	assert(!BIT_GET(word, 25) && !BIT_GET(word, 26)
+	/*assert(!BIT_GET(word, 25) && !BIT_GET(word, 26)
 		&& BIT_GET(word, 4) && BIT_GET(word, 7));
- 	assert(check_condition_code(word));
+ 	assert(check_condition_code(word)); */
 
 	MULTIPLY_INSTRUCTION *instruction
 		= (MULTIPLY_INSTRUCTION *) &word;
