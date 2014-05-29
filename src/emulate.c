@@ -196,37 +196,31 @@ void binary_file_read(char* filename)
 // outputs content of registers and non-zero memory
 void print_ARM_state()
 {
-	FILE *out = fopen("test.out","w");
-	if (out == NULL)
-		system_exit("");
-
-
-	fprintf(out, "Registers:\n");
+	printf("Registers:\n");
 	for (int i=0; i<REGISTER_COUNT - 4; i++)
 	{
-		fprintf(out, "$%-3i:%11i (0x%08x)\n", i, ARM->registers[i], ARM->registers[i]);
+		printf("$%-3i:%11i (0x%08x)\n", i, ARM->registers[i], ARM->registers[i]);
 	}
 
-	fprintf(out, "PC  :%11i (0x%08x)\n",ARM->registers[PC], ARM->registers[PC]);
-	fprintf(out, "CPSR:%11i (0x%08x)\n",ARM->registers[CPSR], ARM->registers[CPSR]);
-	fprintf(out, "Non-zero memory:\n");
+	printf("PC  : %10i (0x%08x)\n",ARM->registers[PC], ARM->registers[PC]);
+	printf("CPSR: %10i (0x%08x)\n",ARM->registers[CPSR], ARM->registers[CPSR]);
+	printf("Non-zero memory:\n");
 
   	for (int i=0; i<MEMORY_CAPACITY; i+=4)
 	{
 		if (memory_word_read(i) == 0) break;
-		fprintf(out, "0x%08x: 0x%02x%02x%02x%02x\n", i,
+		printf("0x%08x: 0x%02x%02x%02x%02x\n", i,
 		ARM->memory[i]&EIGHT_BITS,
 		ARM->memory[i+1]&EIGHT_BITS,
 		ARM->memory[i+2]&EIGHT_BITS,
 		ARM->memory[i+3]&EIGHT_BITS);
 	}
 
-	fclose(out);
 }
 
 int main(int argc, char **argv)
 {
-	printf(" > Running ARM Emulator v1.0 (%s)\n", argv[0]);
+	//printf(" > Running ARM Emulator v1.0 (%s)\n", argv[0]);
 
 	if (argc < 2 || argv[1] == NULL)
 		system_exit(" > Usage: emulate <input.bin>\n > Terminated\n");
@@ -252,7 +246,7 @@ int main(int argc, char **argv)
 void system_exit(char *message)
 {
 	perror(message);
-    exit(EXIT_FAILURE);
+		exit(EXIT_FAILURE);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -262,29 +256,29 @@ void system_exit(char *message)
 // pipeline simulation
 void emulator_loop()
 {
-  int32_t reg = memory_word_read(ARM->registers[PC]);
+	int32_t reg = memory_word_read(ARM->registers[PC]);
 
-  ARM->pipeline->fetched = reg;
+	ARM->pipeline->fetched = reg;
 
-  ARM->registers[PC] += 4;
+	ARM->registers[PC] += 4;
 
-  for (;;)
-  {
-  	ARM->pipeline->decode = ARM->pipeline->fetched;
+	for (;;)
+	{
+		ARM->pipeline->decode = ARM->pipeline->fetched;
 
-  	ARM->pipeline->fetched = memory_word_read(ARM->registers[PC]);
+  		ARM->pipeline->fetched = memory_word_read(ARM->registers[PC]);
 
-  	ARM->registers[PC] += 4;
+		ARM->registers[PC] += 4;
 
-  	int32_t exe_instruction = ARM->pipeline->decode;
+		int32_t exe_instruction = ARM->pipeline->decode;
 
-  	if (exe_instruction == 0) break;
+		if (exe_instruction == 0) break;
 
-  	if (check_condition_code(exe_instruction))
-  	{
-  		decode_instruction(ARM->pipeline->decode);
-  	}
-  }
+		if (check_condition_code(exe_instruction))
+		{
+			decode_instruction(ARM->pipeline->decode);
+		}
+	}
 }
 
 
@@ -427,7 +421,7 @@ void exe_data_processing(int32_t word)
 {
 	/*assert(!BIT_GET(word, 25) && !BIT_GET(word, 26)
 		&& !(BIT_GET(word, 4) && BIT_GET(word, 7)));
- 	assert(check_condition_code(word));*/
+ 	*/
 
 	DATA_PROCESSING_INSTRUCTION *instruction
 		= (DATA_PROCESSING_INSTRUCTION *) &word;
@@ -453,7 +447,8 @@ void exe_data_processing(int32_t word)
 	} // end if(I == 1)
 
 	int32_t result;
-
+	int64_t res64;
+	
 	int32_t operand1 = ARM->registers[Rn];
 	switch (opCode)
 	{
@@ -472,12 +467,14 @@ void exe_data_processing(int32_t word)
 		case 2  :
 		case 10 : // sub, cmp
 		{
-			result = operand1 - operand2;
+			res64  = operand1 - operand2;
+			result = (res64 & ((1UL << 33) - 1));
 			break;
 		}
 		case 3  : // rsb
 		{
-			result = operand2 - operand1;
+			res64  = operand2 - operand1;
+			result = (res64 & ((1UL << 33) - 1)); 
 			break;
 		}
 		case 4  : // add
@@ -513,16 +510,19 @@ void exe_data_processing(int32_t word)
 					set_CPSR_flag(CARRY);
 				}
 				else clear_CPSR_flag(CARRY);
+				break;
 			}
 			case 2  :
 			case 3  :
 			case 10 : // sub, rsb, cmp
-			{
-				if (result < 0) // TODO FUYVK&CRGBIC*£&$$^"!DASKOKOSCHLAFFEN
+			{	
+				if (result >= 0) // OUDV*&)OVC*HCDASKOKOSCHLAFFEN
 				{
-					set_CPSR_flag(CARRY);
+					set_CPSR_flag(CARRY); 
 				}
 				else clear_CPSR_flag(CARRY);
+				
+				break;
 			}
 		}
 	} // end if (S == 1)
