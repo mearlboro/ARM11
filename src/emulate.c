@@ -206,9 +206,8 @@ int main(int argc, char **argv)
     // Fetch instrction at memory[0]. That is the inital value of PC
     // Load initial PC value into registers[PC]
     ARM->registers[PC] = 0;
-    print_ARM_state();
     emulator_loop();
-
+    print_ARM_state();
     fclose(file);
     free(ARM);
     return 0;
@@ -335,8 +334,24 @@ int check_condition_code(int32_t word)
 void print_ARM_state()
 {
 
-	printf("Non-zero memory:\n\n");
-  	printf("Byte by Byte:\n");
+	printf("Registers:\n");
+	for (uint16_t i = 0; i < REGISTER_COUNT-2; i++)
+    {
+        printf("$%-3i:%11i (0x%08x)\n", i, ARM->registers[i], ARM->registers[i]);
+    }
+    printf("PC  :%11i (0x%08x)\n",ARM->registers[PC], ARM->registers[PC]);
+    printf("CPSR:%11i (0x%08x)\n",ARM->registers[CPSR], ARM->registers[CPSR]);
+	printf("Non-zero memory:\n");
+  	for(uint16_t i = 0; i < MEMORY_CAPACITY; i += 4)
+    {
+        if(memory_word_read(i) == 0) break;
+        printf("0x%08i: 0x%02x%02x%02x%02x\n", i,
+               ARM->memory[i+3]&EIGHT_BITS,
+               ARM->memory[i+2]&EIGHT_BITS,
+               ARM->memory[i+1]&EIGHT_BITS,
+               ARM->memory[i]&EIGHT_BITS);
+    }
+  	/*printf("Byte by Byte:\n");
 
 	for (uint16_t i = 0; i < MEMORY_CAPACITY; i++)
   	{
@@ -353,7 +368,7 @@ void print_ARM_state()
   	{
   		int32_t word = memory_word_read(i);
   		if (word == 0) break;
-		printf("0x%i: %i\n", i, word);
+		printf("0x%i: %x\n", i, word);
 		print_bits(word);
   	}
 
@@ -361,7 +376,7 @@ void print_ARM_state()
   	for (int i = 0; i < REGISTER_COUNT; i++)
     {
         printf("#%2i: %i\n",i,ARM->registers[i]);
-    }
+    }*/
 }
 
 
