@@ -44,6 +44,14 @@ int32_t bit_put(int32_t i, int n, int b)
   return i;
 }
 
+int32_t bits_get2(int32_t i, int n, int m)
+{
+	// m > n   making the mask unsigned solves the problem... but y?
+	if (m - n == sizeof(i) * 8 - 1) return i;
+	uint32_t mask = ((1 << (m - n + 1)) - 1) << n;
+	return (i & mask) >> n;
+}
+
 int32_t bits_get(int32_t i, int n, int m)
 {
   int32_t mask = 0;

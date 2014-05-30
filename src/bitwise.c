@@ -43,7 +43,16 @@ int32_t bit_put(int32_t i, int n, int b)
 // Gets bits n to m of integer i where 0 is the rightmost bit
 int32_t bits_get(int32_t i, int n, int m)
 {
-	return (i >> n) & ((1 << m) - 1);
+  int32_t mask = 0;
+  for(int j=n ; j<=m+1 ; ++j)
+  {
+    int32_t x = 1 << j;
+    mask += x;
+  }
+
+  i = i & mask;
+  i = i >> n;
+  return i;
 }
 
 // Sets bits n to m of integer i to the value of bits n to m of integer j
