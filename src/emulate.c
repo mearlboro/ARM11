@@ -5,26 +5,14 @@
 #include <stdio.h>
 #include "bitwise.h"
 
-////////////////////////////////////////////////////////////////////////////////
-//  CONSTANTS AND MACROS  //////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
+//////////  CONSTANTS AND MACROS  //////////////////////////////////////////////
 
-// ARM main memory has 2^16 = 65536 bytes
 #define MEMORY_CAPACITY 65536
-
-// ARM has 17, 32-bit registers
 #define REGISTER_COUNT 17
 
-// mask for the first 8 bits
-#define EIGHT_BITS 255
+//////////  INSTRUCTION TYPE DEFINITIONS ///////////////////////////////////////
 
-
-////////////////////////////////////////////////////////////////////////////////
-//  INSTRUCTION TYPE DEFINITIONS ///////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-// data processing istructions
-typedef struct DATA_PROCESSING_INSTRUCTION
+typedef struct DataProcessingInstr
 {
 	unsigned int Operand2 : 12;
 	unsigned int Rd       : 4;
@@ -34,111 +22,99 @@ typedef struct DATA_PROCESSING_INSTRUCTION
 	unsigned int I        : 1;
 	unsigned int _00      : 2;
 	unsigned int Cond     : 4;
-} DATA_PROCESSING_INSTRUCTION;
+} DataProcessingInstr;
 
 
-// for operand2 and offset in DATA_PROCESSING_INSTRUCTION
-// and SINGLE_DATA_TRANSFER_INSTRUCTION
-
-typedef struct IMMEDIATE_REGISTER
+typedef struct ImmediateReg
 {
 	unsigned int Imm    : 8;
 	unsigned int Rotate : 4;
+} ImmediateReg;
 
-} IMMEDIATE_REGISTER; // rotates the immediate register
 
-
-typedef struct SHIFT_REGISTER
+typedef struct
 {
-	unsigned int Rm           : 4;
-	unsigned int Shift_flag   : 1;
-	unsigned int Shift_type   : 2;
-	unsigned int Shift_amount : 5;
-} SHIFT_REGISTER; // performs only shift by constant amount
+  unsigned int Rm     : 4;
+	unsigned int Flag   : 1;
+	unsigned int Type   : 2;
+	unsigned int Amount : 5;
+} ShiftReg;
 
 
-// multiply instruction
-typedef struct MULTIPLY_INSTRUCTION
+typedef struct MultiplyInstr
 {
-    unsigned int Rm      : 4;
-    unsigned int _1001   : 4;
-    unsigned int Rs      : 4;
-    unsigned int Rn      : 4;
-    unsigned int Rd      : 4;
-    unsigned int S       : 1;
-    unsigned int A       : 1;
-    unsigned int _000000 : 6;
-    unsigned int Cond    : 4;
-} MULTIPLY_INSTRUCTION;
+  unsigned int Rm      : 4;
+  unsigned int _1001   : 4;
+  unsigned int Rs      : 4;
+  unsigned int Rn      : 4;
+  unsigned int Rd      : 4;
+  unsigned int S       : 1;
+  unsigned int A       : 1;
+  unsigned int _000000 : 6;
+  unsigned int Cond    : 4;
+} MultiplyInstr;
 
 
-// single data transfer instruction
-typedef struct SINGLE_DATA_TRANSFER_INSTRUCTION
+typedef struct SingleDataTransferInstr
 {
-    unsigned int Offset : 12;
-    unsigned int Rd     : 4;
-    unsigned int Rn     : 4;
-    unsigned int L      : 1;
-    unsigned int _00    : 2;
-    unsigned int U      : 1;
-    unsigned int P      : 1;
-    unsigned int I      : 1;
-    unsigned int _01    : 2;
-    unsigned int Cond   : 4;
-} SINGLE_DATA_TRANSFER_INSTRUCTION;
+  unsigned int Offset : 12;
+  unsigned int Rd     : 4;
+  unsigned int Rn     : 4;
+  unsigned int L      : 1;
+  unsigned int _00    : 2;
+  unsigned int U      : 1;
+  unsigned int P      : 1;
+  unsigned int I      : 1;
+  unsigned int _01    : 2;
+  unsigned int Cond   : 4;
+} SingleDataTransferInstr;
 
 
-// branch instruction
-typedef struct BRANCH_INSTRUCTION
+typedef struct BranchInstr
 {
+  unsigned int Offset : 24;
+  unsigned int _1010  : 4;
+  unsigned int Cond   : 4;
+} BranchInstr;
 
-    unsigned int Offset : 24;
-    unsigned int _1010  : 4;
-    unsigned int Cond   : 4;
-} BRANCH_INSTRUCTION;
 
-////////////////////////////////////////////////////////////////////////////////
-//  OTHER TYPE DEFINITIONS /////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-typedef struct pipeline
+typedef struct Pipeline
 {
-  	int32_t fetched;
-  	int32_t decode;
-} pipeline_t;
+  int32_t fetched;
+  int32_t decoded;
+} Pipeline;
 
-typedef struct ARM
+
+typedef struct ARMState
 {
-  	int8_t memory[MEMORY_CAPACITY];
-  	int32_t registers[REGISTER_COUNT];
-  	pipeline_t *pipeline;
-} ARM_t;
+  int8_t memory[MEMORY_CAPACITY];
+  int32_t registers[REGISTER_COUNT];
+  Pipeline *pipeline;
+} ARMState;
+
 
 typedef enum
 {
-  	R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12,
-  	SP, LR,
-  	PC,
-  	CPSR
-} registerT;
+  R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12,
+  SP, LR,
+  PC,
+  CPSR
+} Register;
+
 
 typedef enum
 {
 	NEGATIVE = 31,
-	ZERO 	 = 30,
+	ZERO 	   = 30,
 	CARRY 	 = 29,
 	OVERFLOW = 28
-} CPSR_flag_t;
+} CPSRFlag;
 
-////////////////////////////////////////////////////////////////////////////////
-//  ARM OBJECT  ////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
+//////////  ARM OBJECT  ////////////////////////////////////////////////////////
 
-ARM_t *ARM = NULL;
+ARMState *ARM = NULL;
 
-////////////////////////////////////////////////////////////////////////////////
-//  FUNCTION PROTOTYPES  ///////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
+//////////  FUNCTION PROTOTYPES  ///////////////////////////////////////////////
 
 void emulator_loop();
 void decode_instruction(int32_t word);
@@ -151,548 +127,490 @@ int8_t memory_byte_read(uint16_t memory_address);
 int32_t memory_word_read(uint16_t memory_address);
 void memory_byte_write(uint16_t memory_address, int8_t byte);
 void memory_word_write(uint16_t memory_address, int32_t word);
-int32_t register_read(registerT reg);
-void register_write(registerT reg, int32_t word);
+int32_t register_read(Register reg);
+void register_write(Register reg, int32_t word);
 int check_condition_code(int32_t word);
-int get_CPSR_flag(CPSR_flag_t flag);
+int get_CPSR_flag(CPSRFlag flag);
 
-// DEBUG/TESTING
 void print_ARM_info();
 void system_exit(char *message);
 int32_t test_glue(int8_t a, int8_t b, int8_t c, int8_t d);
 
-// READ/WRITE
 void print_ARM_state();
-void binary_file_read();
+void read_ARM_program(const char *filename);
 
+//////////  BINARY FILE READ  //////////////////////////////////////////////////
 
-////////////////////////////////////////////////////////////////////////////////
-//  MAIN  //////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-// reads the binary file and loads data into ARM memory
-void binary_file_read(char* filename) 
+void read_ARM_program(const char *filename)
 {
 	FILE *file = fopen(filename, "rb");
 	if (file == NULL)
-		system_exit(" > Error opening input file");
-
+  {
+		system_exit("Error opening input file");
+  }
+  
 	if (fseek(file, 0, SEEK_END) != 0)
-		system_exit(" > Error reading file here");
-
+  {
+		system_exit("Error reading end of file");
+  }
 	long bytes = ftell(file);
-
 	rewind(file);
-
+  
 	if (fread(ARM->memory, 1, bytes, file) != bytes)
-		system_exit(" > Error reading file lel");
-
+  {
+		system_exit("Error parsing file into ARM memory");
+  }
+  
 	if (ferror(file))
-		system_exit(" > Error working with file");
-
+  {
+		system_exit("Error working with file");
+  }
 	fclose(file);
 }
 
-// outputs content of registers and non-zero memory
+//////////  PRINT ARM STATE  ///////////////////////////////////////////////////
+
 void print_ARM_state()
 {
 	printf("Registers:\n");
-	for (int i=0; i<REGISTER_COUNT - 4; i++)
+	for (int i = 0; i < REGISTER_COUNT - 4; i++)
 	{
 		printf("$%-3i:%11i (0x%08x)\n", i, ARM->registers[i], ARM->registers[i]);
 	}
-
-	printf("PC  : %10i (0x%08x)\n",ARM->registers[PC], ARM->registers[PC]);
-	printf("CPSR: %10i (0x%08x)\n",ARM->registers[CPSR], ARM->registers[CPSR]);
+  
+	printf("PC  : %10i (0x%08x)\n", ARM->registers[PC], ARM->registers[PC]);
+	printf("CPSR: %10i (0x%08x)\n", ARM->registers[CPSR], ARM->registers[CPSR]);
+  
 	printf("Non-zero memory:\n");
-
-  	for (int i=0; i<MEMORY_CAPACITY; i+=4)
+  for (int i = 0; i < MEMORY_CAPACITY; i += 4)
 	{
-		if (memory_word_read(i) == 0) break;
+		if (memory_word_read(i) == 0) continue;
+    
 		printf("0x%08x: 0x%02x%02x%02x%02x\n", i,
-		ARM->memory[i]&EIGHT_BITS,
-		ARM->memory[i+1]&EIGHT_BITS,
-		ARM->memory[i+2]&EIGHT_BITS,
-		ARM->memory[i+3]&EIGHT_BITS);
+           ARM->memory[i]     & 0xFF,
+           ARM->memory[i + 1] & 0xFF,
+           ARM->memory[i + 2] & 0xFF,
+           ARM->memory[i + 3] & 0xFF
+           );
+    
 	}
-
 }
+
+//////////  MAIN  //////////////////////////////////////////////////////////////
 
 int main(int argc, char **argv)
 {
-	//printf(" > Running ARM Emulator v1.0 (%s)\n", argv[0]);
-
-	if (argc < 2 || argv[1] == NULL)
-		system_exit(" > Usage: emulate <input.bin>\n > Terminated\n");
-
-	// allocating memory for the ARM
-	ARM = calloc(1, sizeof(ARM_t));
-	ARM->pipeline = calloc(1, sizeof(pipeline_t));
-	if (ARM == NULL) system_exit(" > Fatal memory-related error");
-	
-	// read binary file
-	binary_file_read(argv[1]);
-
-	// Fetch instrction at memory[0]. That is the inital value of PC
-	// Load initial PC value into registers[PC]
-	ARM->registers[PC] = 0;
+	printf("Running ARM Emulator v1.0 (%s)\n", argv[0]);
+	//if (argc < 2 || argv[1] == NULL)
+  //{
+  //	system_exit("Usage: emulate <input.bin>\nTerminated\n");
+  //}
+  
+	// Allocating memory for the ARM
+	ARM = calloc(1, sizeof(ARMState));
+	ARM->pipeline = calloc(1, sizeof(Pipeline));
+	if (ARM == NULL)
+  {
+    system_exit("Fatal memory-related error");
+  }
+  
+	// Read binary file
+	read_ARM_program("/Users/Zeme/ARM11_XCODE/ARM11_XCODE/test_cases/gpio_1");//argv[1]);
+  
+  // Begin execution
 	emulator_loop();
-	print_ARM_state();
-
+  
+  // Free stuff
 	free(ARM);
-	return 0;
+  free(ARM->pipeline);
+  
+  // Everything went better than expected :)
+	return EXIT_SUCCESS;
 }
 
 void system_exit(char *message)
 {
 	perror(message);
-		exit(EXIT_FAILURE);
+  exit(EXIT_FAILURE);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-//  CORE  //////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
+//////////  EMULATOR LOOP //////////////////////////////////////////////////////
 
-// pipeline simulation
 void emulator_loop()
 {
-	int32_t reg = memory_word_read(ARM->registers[PC]);
-
-	ARM->pipeline->fetched = reg;
-
+  ARM->registers[PC] = 0;
+  
+	ARM->pipeline->fetched = memory_word_read(ARM->registers[PC]);
 	ARM->registers[PC] += 4;
-
+  
 	for (;;)
 	{
-		ARM->pipeline->decode = ARM->pipeline->fetched;
-
-  		ARM->pipeline->fetched = memory_word_read(ARM->registers[PC]);
-
+		ARM->pipeline->decoded = ARM->pipeline->fetched;
+    ARM->pipeline->fetched = memory_word_read(ARM->registers[PC]);
 		ARM->registers[PC] += 4;
-
-		int32_t exe_instruction = ARM->pipeline->decode;
-
-		if (exe_instruction == 0) break;
-
+    
+		int32_t exe_instruction = ARM->pipeline->decoded;
+		if (exe_instruction == 0)
+    {
+      print_ARM_state();
+      return;
+    }
+    printf("##############################################################\n");
+    printf("%-20s", "Instruction: ");
+    print_bits(exe_instruction);
+    
 		if (check_condition_code(exe_instruction))
 		{
-			decode_instruction(ARM->pipeline->decode);
+			decode_instruction(ARM->pipeline->decoded);
+      print_ARM_state();
 		}
 	}
 }
 
+//////////  CPSR FLAG OPERATIONS  //////////////////////////////////////////////
 
-// flag operations
-void clear_CPSR_flag(CPSR_flag_t flag)
-{
-	BIT_CLEAR(ARM->registers[CPSR], flag);
-}
+#define CPSRclr(f)    (BIT_CLEAR(ARM->registers[CPSR], (f)))
+#define CPSRset(f)      (BIT_SET(ARM->registers[CPSR], (f)))
+#define CPSRget(f)      (BIT_GET(ARM->registers[CPSR], (f)))
+#define CPSRput(f, b) if (IS_SET(b)) CPSRset(f); else CPSRclr(f);
 
-void set_CPSR_flag(CPSR_flag_t flag)
-{
-	BIT_SET(ARM->registers[CPSR], flag);
-}
-
-
-int get_CPSR_flag(CPSR_flag_t flag)
-{
-	return BIT_GET(ARM->registers[CPSR], flag);
-}
-
-void put_CPSR_flag(CPSR_flag_t flag, int bit)
+void clear_CPSR_flag(CPSRFlag flag) { BIT_CLEAR(ARM->registers[CPSR], flag); }
+void set_CPSR_flag(CPSRFlag flag) { BIT_SET(ARM->registers[CPSR], flag); }
+int get_CPSR_flag(CPSRFlag flag) { return BIT_GET(ARM->registers[CPSR], flag); }
+void put_CPSR_flag(CPSRFlag flag, int bit)
 {
   if (bit == 1) set_CPSR_flag(flag);
   else clear_CPSR_flag(flag);
 }
 
+//////////  DECODE INSTRUCTION  ////////////////////////////////////////////////
 
-// decode 32-bit instruction
 void decode_instruction(int32_t word)
 {
-  	int code = bits_get(word, 26, 27);
-  	switch (code)
-  	{
+  //int code = bits_get(word, 26, 27);
+  int code = bits_get2(word, 26, 27);//BITS_GET(word, 26, 27);
+  printf("%-20s", "Decoding (CODE): ");
+  print_bits(code);
+  // DEBUG
+  //print_bits(word);
+  // END DEBUG
+  
+  switch (code)
+  {
 		case 1 : exe_single_data_transfer(word); break;
-  		case 2 : exe_branch(word); break;
-  		case 0 :
-  		{
-  			if (BIT_GET(word, 25) == 1) exe_data_processing(word);
-  			else
-  			{
-  				if (BIT_GET(word, 4) == 0) exe_data_processing(word);
-  				else
-  				{
-  					if (BIT_GET(word, 7) == 1) exe_multiply(word);
-  					else exe_data_processing(word);
-  				}
-  			}
-  			break;
-  		}
-  		default : exit(EXIT_FAILURE);
-  	}
+    case 2 : exe_branch(word); break;
+    case 0 :
+    {
+      if (IS_SET(BIT_GET(word, 25))) exe_data_processing(word);
+      else
+      {
+        if (IS_CLEAR(BIT_GET(word, 4))) exe_data_processing(word);
+        else
+        {
+          if (IS_SET(BIT_GET(word, 7))) exe_multiply(word);
+          else exe_data_processing(word);
+        }
+      }
+      break;
+    }
+    default : exit(EXIT_FAILURE);
+  }
 }
 
+//////////  CHECK CONDITION CODE  //////////////////////////////////////////////
 
-// checks the 4-bit conditions at the beginning of instruction
 int check_condition_code(int32_t word)
 {
-	int32_t cond = bits_get(word, 28, 31);
+  
+	int cond = bits_get2(word, 28, 31); //BITS_GET(word, 28, 31);
+  // DEBUG
+  //print_bits(word);
+  printf("%-20s", "Condition: ");
+  print_bits(cond);
+  // END DEBUG
 	switch (cond)
 	{
-		case 0  : return get_CPSR_flag(ZERO);
-			// eq - Z set - equal
-		case 1  : return !get_CPSR_flag(ZERO);
-			// ne - Z clear - not equal
-		case -6 : return get_CPSR_flag(NEGATIVE) == get_CPSR_flag(OVERFLOW);
-			// ge - N equals V - greater or equal
-		case -5 : return get_CPSR_flag(NEGATIVE) != get_CPSR_flag(OVERFLOW);
-			// lt - N not equal to V - less than
-		case -4 : return !get_CPSR_flag(ZERO) &&
-				(get_CPSR_flag(NEGATIVE) == get_CPSR_flag(OVERFLOW));
-			// gt - Z clear AND (N equals V) - greater than
-		case -3 : return get_CPSR_flag(ZERO) ||
-				(get_CPSR_flag(NEGATIVE) != get_CPSR_flag(OVERFLOW));
-			// le - Z set OR (N not equal to V) - less than or equal
-		case -2 : return 1;
+		case 0  : return  CPSRget(ZERO);
+		case 1  : return !CPSRget(ZERO);
+		case 10 : return  CPSRget(NEGATIVE) == CPSRget(OVERFLOW);
+		case 11 : return  CPSRget(NEGATIVE) != CPSRget(OVERFLOW);
+		case 12 : return !CPSRget(ZERO) && (CPSRget(NEGATIVE) == CPSRget(OVERFLOW));
+    case 13 : return  CPSRget(ZERO) || (CPSRget(NEGATIVE) != CPSRget(OVERFLOW));
+		case 14 : return 1;
 		default : return 0;
 	}
-
+  /*switch (cond)
+   {
+   // eq - Z set - equal
+   case 0  : return get_CPSR_flag(ZERO);
+   
+   case 1  : return !get_CPSR_flag(ZERO);
+   // ne - Z clear - not equal
+   case -6 : return get_CPSR_flag(NEGATIVE) == get_CPSR_flag(OVERFLOW);
+   // ge - N equals V - greater or equal
+   case -5 : return get_CPSR_flag(NEGATIVE) != get_CPSR_flag(OVERFLOW);
+   // lt - N not equal to V - less than
+   case -4 : return !get_CPSR_flag(ZERO) &&
+   (get_CPSR_flag(NEGATIVE) == get_CPSR_flag(OVERFLOW));
+   // gt - Z clear AND (N equals V) - greater than
+   case -3 : return get_CPSR_flag(ZERO) ||
+   (get_CPSR_flag(NEGATIVE) != get_CPSR_flag(OVERFLOW));
+   // le - Z set OR (N not equal to V) - less than or equal
+   case -2 : return 1;
+   default : return 0;
+   }*/
 }
 
+//////////  SINGLE DATA TRANSFER ///////////////////////////////////////////////
 
 
 
-////////////////////////////////////////////////////////////////////////////////
-//  INSTRUCTION EXECUTION FUNCTIONS ////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
 
 void exe_single_data_transfer(int32_t word)
 {
-
-	/*assert(bits_get(word, 26, 27) == 2);
-	*/
-
-	int32_t Rn  = bits_get(word, 16, 19);
-	int32_t Rd  = bits_get(word, 12, 15);
-	int32_t offset = bits_get(word,  0, 11);
-	int I = BIT_GET(word, 25);
-	int P = BIT_GET(word, 24);
-	int U = BIT_GET(word, 23);
-	int L = BIT_GET(word, 20);
-
-	if (I == 0)
+	SingleDataTransferInstr *instr = (SingleDataTransferInstr *) &word;
+  
+	int Rn     = instr->Rn; // base register
+	int Rd     = instr->Rd; // destination register
+	int Offset = instr->Offset;
+	int I      = instr->I;
+	int P      = instr->P;
+	int U      = instr->U;
+	int L      = instr->L;
+  
+  // TODO move this to separate function
+	if (IS_CLEAR(I))
 	{
-		int32_t Imm = ZERO_EXT_32(bits_get(offset, 0, 7));
-		int8_t rotate_amount = bits_get(offset, 8, 11) << 1;
-		Imm = rotate(Imm, rotate_amount);
-		offset = Imm;
+		//int32_t Imm = ZERO_EXT_32(BITS_GET(Offset, 0, 7));
+    int Imm = bits_get2(Offset, 0, 7);
+		int ramount = bits_get2(Offset, 8, 11) * 2;
+		Offset = rotate(Imm, ramount);
 	}
+	else Offset = immediate_shifted_register(Offset, 0);
+  
+  int PostIndexing = IS_CLEAR(P);
+  int PreIndexing = !PostIndexing;
+  
+  int address = ARM->registers[Rn];
+  int value = ARM->registers[Rd];
+  if (PreIndexing)
+  {
+    // Pre-indexing add offset to base register
+    address += IS_SET(U) ? Offset : -Offset;
+  }
+  
+  // Loading from memory into Rd
+	if (IS_SET(L))
+  {
+    // MEMORY LOAD
+    ARM->registers[Rd] = memory_word_read(address); //
+  }
 	else
-	{
-		offset = immediate_shifted_register(offset, 0);
-	}
+  {
+    // MEMORY STORE
+    memory_word_write(address, value);
+  }
+	
+  if (PostIndexing) {
+    address += IS_SET(U) ? Offset : -Offset;
+    ARM->registers[Rn] = address;
+  }
 
-
-	if (L == 1) // Loading from memory into Rd
-	{
-		ARM->registers[Rd] = ARM->memory[ARM->registers[Rn]];
-	}
-	else
-	{
-		ARM->memory[ARM->registers[Rn]] = ARM->registers[Rd];
-	}
-
-	if (P == 0) // Post-indexing
-	{
-		if (U == 0)
-		{
-			ARM->registers[Rn] -= offset;
-		}
-		else
-		{
-			ARM->registers[Rn] += offset;
-		}
-	}
 }
 
-
+//////////  DATA PROCESSING  ///////////////////////////////////////////////////
 
 void exe_data_processing(int32_t word)
 {
-	/*assert(!BIT_GET(word, 25) && !BIT_GET(word, 26)
-		&& !(BIT_GET(word, 4) && BIT_GET(word, 7)));
- 	*/
+	DataProcessingInstr *inst = (DataProcessingInstr *) &word;
+  
+	int I        = inst->I;             // 25
+	int OpCode   = inst->OpCode;        // 24-21
+	int S        = inst->S;
+	int Rn       = inst->Rn;
+	int Rd       = inst->Rd;
+	int Operand2 = inst->Operand2;      // 11-0
+  
+  int Operand1 = ARM->registers[Rn];
+	int result;
+  
+  // 11100011 10100000 00111100 00000001
+  switch (I)
+  {
+    case 0 : Operand2 = immediate_shifted_register(Operand2, S); break;
+    case 1 :
+    {
+      //int32_t Imm = ZERO_EXT_32(BITS_GET(Operand2, 0, 7));
+      int Imm     = bits_get2(Operand2, 0, 7);
+      int ramount = bits_get2(Operand2, 8, 11) * 2;
+      Operand2    = rotate(Imm, ramount);
+      break;
+    }
+    default : system_exit("If you see this then you really f'd up!");
+  }
 
-	DATA_PROCESSING_INSTRUCTION *instruction
-		= (DATA_PROCESSING_INSTRUCTION *) &word;
 
-	int32_t I        = instruction->I;
-	int32_t opCode   = instruction->OpCode;
-	int32_t S        = instruction->S;
-	int32_t Rn       = instruction->Rn;
-	int32_t Rd       = instruction->Rd;
-	int32_t operand2 = instruction->Operand2;
-
-	if (I == 1)
-	{
-		int32_t Imm = ZERO_EXT_32(bits_get(operand2, 0, 7));
-		int8_t rotate_amount = bits_get(operand2, 8, 11) << 1;
-		Imm = rotate(Imm, rotate_amount);
-		operand2 = Imm;
-	}
-	else
-	{
-		operand2 = immediate_shifted_register(operand2, S);
-
-	} // end if(I == 1)
-
-	int32_t result;
-	int64_t res64;
-	
-	int32_t operand1 = ARM->registers[Rn];
-	switch (opCode)
+	switch (OpCode)
 	{
 		case 0  :
-		case 8  : // and, tst
-		{
-			result = operand1 & operand2;
-			break;
-		}
+		case 8  : result = Operand1 & Operand2; break; // and, tst
 		case 1  :
-		case 9  : // eor, teq
-		{
-			result = operand1 ^ operand2;
-			break;
-		}
+		case 9  : result = Operand1 ^ Operand2; break; // eor, teq
 		case 2  :
-		case 10 : // sub, cmp
-		{
-			res64  = operand1 - operand2;
-			result = (res64 & ((1UL << 33) - 1));
-			break;
-		}
-		case 3  : // rsb
-		{
-			res64  = operand2 - operand1;
-			result = (res64 & ((1UL << 33) - 1)); 
-			break;
-		}
-		case 4  : // add
-		{
-			result = operand1 + operand2;
-			break;
-		}
-		case 12 : // orr
-		{
-			result = operand1 | operand2;
-			break;
-		}
-		case 13 : // mov
-		{
-			result = operand2;
-			break;
-		}
+		case 10 : result = Operand1 - Operand2; break; // sub, cmp
+		case 3  : result = Operand2 - Operand1; break; // rsb
+		case 4  : result = Operand1 + Operand2; break; // add
+		case 12 : result = Operand1 | Operand2; break; // orr
+		case 13 : {
+      result = Operand2;            break;
+      
+    } // mov
 		default : result = 0;
-
-	} // end switch (opCode)
-
-	if (S == 1) // sets flags
+	}
+  
+	if (IS_SET(S)) // sets flags
 	{
-		if(result == 0) set_CPSR_flag(ZERO); 		// Z
-		put_CPSR_flag(NEGATIVE, BIT_GET(result, 31));	// N
-
-		switch (opCode)
+		if (result == 0) CPSRset(ZERO); 		// Z
+		CPSRput(NEGATIVE, BIT_GET(result, 31));	// N
+    
+		switch (OpCode) // It is important to make this unsigned
 		{
-			case 4 : // add
-			{
-				if (get_CPSR_flag(OVERFLOW) == 1)
-				{
-					set_CPSR_flag(CARRY);
-				}
-				else clear_CPSR_flag(CARRY);
-				break;
-			}
+			case 4  : CPSRput(CARRY, CPSRget(OVERFLOW)); break; // add
 			case 2  :
 			case 3  :
-			case 10 : // sub, rsb, cmp
-			{	
-				if (result >= 0) // OUDV*&)OVC*HCDASKOKOSCHLAFFEN
-				{
-					set_CPSR_flag(CARRY); 
-				}
-				else clear_CPSR_flag(CARRY);
-				
-				break;
-			}
+			case 10 : CPSRput(CARRY, result >= 0); break; // sub, rsb, cmp
 		}
 	} // end if (S == 1)
-
-	switch (opCode)
+  
+	switch (OpCode)
 	{
 		case 8  :
 		case 9  :
-		case 10 : // tst, teq, cmp discarded result
-		{
-			result = 0;
-			break;
-		}
-		case 0  :
-		case 1  :
-		case 2  :
-		case 3  :
-		case 4  :
-		case 12 :
-		case 13 : // keep result
-		{
-			ARM->registers[Rd] = result;
-			break;
-		}
-	} // end switch (opCode)
-
-
+		case 10 :                              break; // tst, teq, cmp result not written
+		default : ARM->registers[Rd] = result; break; // keep result
+	}
 }
 
+//////////  IMMEDIATE SHIFT REGISTER  //////////////////////////////////////////
 
-
-// helper function that performs the shifting
-// when shifted_register/offset is a shift register
 int32_t immediate_shifted_register(int32_t word12, int8_t S)
 {
-	SHIFT_REGISTER *shift_register
-			= (SHIFT_REGISTER *) &word12;
-
-	int32_t shift_flag = shift_register->Shift_flag;
-	int32_t shift_amount = 0;
-
-
-	if (shift_flag == 0)
-	{
-		shift_amount = shift_register->Shift_amount;
-	}
+	ShiftReg *sreg = (ShiftReg *) &word12;
+  
+	int flag   = sreg->Flag;
+	int amount = 0;
+  
+	if (IS_CLEAR(flag)) amount = sreg->Amount;
 	else
 	{
-		int32_t register_number = shift_register->Shift_amount;
-		BIT_CLEAR(shift_amount, 27);
-
-		int32_t Rs   = ARM->registers[register_number];
-		shift_amount = bits_get(Rs, 0, 8);
-	} // end if (shift_flag == 0)
-
-
-	int32_t shift_type   = shift_register->Shift_type;
-	int32_t Rm           = shift_register->Rm;
-
-	int32_t shift_reg    = ARM->registers[Rm];
-
-
-	switch (shift_type)
+		int rnum = sreg->Amount;
+		// BIT_CLEAR(amount, 27); Not needed?
+		int Rs = ARM->registers[rnum];
+		amount = bits_get2(Rs, 0, 8);
+	}
+  
+	int Type     = sreg->Type;
+	int Rm       = sreg->Rm;
+	int shiftreg = ARM->registers[Rm];
+  
+	switch (Type)
 	{
-		case 0 : //logical shit left
+		case 0 : // Logical shit left
 		{
-			word12  = shift_reg << shift_amount;
+			word12 = shiftreg << amount;
 			int carry = 0;
-			if (shift_amount!=0)
-			{
-				carry = BIT_GET(shift_reg, 31 - shift_amount + 1);
-			}
-			if (S == 1) put_CPSR_flag(CARRY, carry);
+			if (amount != 0) carry = BIT_GET(shiftreg, 31 - amount + 1);
+			if (IS_SET(S)) put_CPSR_flag(CARRY, carry);
 			break;
 		}
-		case 1 : //logical right shift
+		case 1 : // Logical right shift
 		{
-			word12  = shift_reg >> shift_amount;
+			word12 = shiftreg >> amount;
 			int carry = 0;
-			if (shift_amount != 0)
-			{
-				carry = BIT_GET(shift_reg, shift_amount - 1);
-			}
-			if (S == 1) put_CPSR_flag(CARRY, carry);
+			if (amount != 0) carry = BIT_GET(shiftreg, amount - 1);
+			if (IS_SET(S)) put_CPSR_flag(CARRY, carry);
 			break;
 		}
-		case 2 : //arithmetic right shift
+		case 2 : // Arithmetic right shift
 		{
-			word12 = shift_reg >> shift_amount;
+			word12 = shiftreg >> amount;
 			int carry = 0;
-			if (shift_amount != 0)
-			{
-				carry = BIT_GET(shift_reg, shift_amount - 1);
-			}
-
+			if (amount != 0) carry = BIT_GET(shiftreg, amount - 1);
 			if (S == 1) put_CPSR_flag(CARRY, carry);
-
-			int bit = BIT_GET(shift_reg, 31);
-			for (int j=0; j<shift_amount; ++j)
-			{
-				bit_put(word12, 31 - j, bit);
-			}
+			int bit = BIT_GET(shiftreg, 31); // TODO move to bits set
+			for (int j = 0; j < amount; j++) bit_put(word12, 31 - j, bit);
 			break;
 		}
-		case 3 : //rotate right
-		{
-			word12 = rotate(shift_reg, shift_amount);
-			break;
-		}
+		case 3 : word12 = rotate(shiftreg, amount); break; //rotate right
 		default : system_exit("INVALID INSTRUCTION FORMAT");
-	} // end switch (shift_type)
-
+	}
+  
 	return word12;
-
 }
+
+//////////  MULTIPLY INSTRUCTION  //////////////////////////////////////////////
 
 void exe_multiply(int32_t word)
 {
-
-	/*assert(!BIT_GET(word, 25) && !BIT_GET(word, 26)
-		&& BIT_GET(word, 4) && BIT_GET(word, 7));
- 	assert(check_condition_code(word)); */
-
-	MULTIPLY_INSTRUCTION *instruction
-		= (MULTIPLY_INSTRUCTION *) &word;
-
-	int32_t Rd = instruction->Rd;
-	int32_t Rn = instruction->Rn;
-	int32_t Rs = instruction->Rs;
-	int32_t Rm = instruction->Rm;
-	int A      = instruction->A;
-	int S      = instruction->S;
-
-	int32_t result = ARM->registers[Rm] * ARM->registers[Rs];
-
-	if (A == 0) ARM->registers[Rd] = result;
+	MultiplyInstr *instr = (MultiplyInstr *) &word;
+  
+	int Rd = instr->Rd;
+	int Rn = instr->Rn;
+	int Rs = instr->Rs;
+	int Rm = instr->Rm;
+	int A  = instr->A;
+	int S  = instr->S;
+  
+	int result = ARM->registers[Rm] * ARM->registers[Rs];
+  
+	if (IS_CLEAR(A)) ARM->registers[Rd] = result;
 	else
 	{
 		result += ARM->registers[Rn];
 		ARM->registers[Rd] = result;
 	}
-
-	if (S == 1)
+  
+	if (IS_SET(S))
 	{
-		// N is set to bit 31 of the result and 
+		// N is set to bit 31 of the result and
 		// Z is set if and only if the result is zero.
-		int result_bit = BIT_GET(result, 31);
-		if (result_bit == 1)
-			set_CPSR_flag(NEGATIVE);
-		else
-			clear_CPSR_flag(NEGATIVE);
-
-		if (result == 0) set_CPSR_flag(ZERO);
+		int resbit = BIT_GET(result, 31);
+    put_CPSR_flag(NEGATIVE, resbit == 1);
+		if (result == 0) CPSRset(ZERO);
 	}
 }
+
+//////////  BRANCH INSTRUCTION  //////////////////////////////////////////////
+
 
 
 void exe_branch(int32_t word)
 {
-	/*assert(bits_get(word, 26, 27) == 1);*/
-
-	BRANCH_INSTRUCTION *instruction
-		= (BRANCH_INSTRUCTION *) &word;
-
-	int32_t offset = (instruction->Offset) << 2;
-
-	ARM->registers[PC]    += offset; // -8 bits ??
-	ARM->pipeline->fetched = ARM->memory[0];
+	//BranchInstr *instr = (BranchInstr *) &word;
+  
+	//int offset = (instr->Offset) << 2;
+  
+  int offset = bits_get2(word, 0, 23);
+  print_bits(offset);
+  
+  offset <<= 2;
+  print_bits(offset);
+  
+  offset <<= 6;
+  print_bits(offset);
+  
+  offset >>= 6;
+  print_bits(offset);
+  
+  //int what = *(int*)(((char*)&word)+1);
+  //print_bits(what);
+  
+	ARM->registers[PC]    += (offset); // -8 bits ??
+  
+  ARM->pipeline->fetched = memory_word_read(ARM->registers[PC]);
+	ARM->registers[PC] += 4;
+	//ARM->pipeline->fetched = ARM->memory[0];
 }
-
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -706,11 +624,11 @@ int8_t memory_byte_read(uint16_t memory_address)
 
 int32_t memory_word_read(uint16_t m)
 {
-	int32_t first  = ARM->memory[m+3]& EIGHT_BITS,
-		   second = ARM->memory[m+2] & EIGHT_BITS,
-		   third  = ARM->memory[m+1] & EIGHT_BITS,
-		   fourth = ARM->memory[m+0] & EIGHT_BITS;
-
+	int32_t first  = ARM->memory[m+3]& 0xFF,
+  second = ARM->memory[m+2] & 0xFF,
+  third  = ARM->memory[m+1] & 0xFF,
+  fourth = ARM->memory[m+0] & 0xFF;
+  
 	return ((first << 24) | (second << 16) | (third << 8) | fourth);
 	//return ((fourth << 24) | (third << 16) | (second << 8) | first);
 }
@@ -718,57 +636,27 @@ int32_t memory_word_read(uint16_t m)
 
 int32_t test_glue(int8_t a, int8_t b, int8_t c, int8_t d)
 {
-
+  
 	return ((a << 24) + (b << 16) + (c << 8) + d);
 }
 
 void memory_byte_write(uint16_t memory_address, int8_t byte)
 {
-
+  ARM->memory[memory_address] = byte;
 }
 
 void memory_word_write(uint16_t memory_address, int32_t word)
 {
 
-}
+  int8_t first = (word >> 24) & 0xFF;
+  int8_t second = (word >> 16) & 0xFF;
+  int8_t third = (word >> 8) & 0xFF;
+  int8_t fourth = word & 0xFF;
 
-int32_t register_read(registerT reg)
-{
-	return 0;
-}
-
-void register_write(registerT reg, int32_t word)
-{
-
-}
-
-
-
-////////////////////////////////////////////////////////////////////////////////
-//  TESTING/DEBUG  /////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-void print_ARM_info()
-{
-	// In ARM_t, memory array is 65536 bytes, registers array is 17*4=68 bytes.
-	// 65536 + 68 = 65604 bytes.
-	// sizeof(ARM_t) returns 65612.
-	// The compiled padded the ARM struct to achieve better performance,
-	// hence the mysterious extra 8 bytes... Thanks compiler!
-	//freopen("data.in","r",stdin);
-	//freopen("data.out","w",stdout);
-	//printf("struct ARM is %lu bytes.\n", sizeof(ARM_t));
-
-	// sizeof(ARM) returns 8 bytes, the size of a pointer, since ARM is a
-	// pointer variable (duh). sizeof(ARM_t *) also returns 8
-	//printf("\"ARM_t ARM = NULL;\" sizeof(ARM) = sizeof(ARM_t *) = %lu = %lu bytes.\n", sizeof(ARM), sizeof(ARM_t*));
-
-	//ARM_t ARM_test;
-	//printf("\"ARM_t ARM_test;\" sizeof(ARM_test) = %lu bytes\n", sizeof(ARM_test));
-
-
-	printf("sizeof(*ARM) = %lu bytes.\n", sizeof(*ARM));
-
+  memory_byte_write(memory_address, fourth);
+  memory_byte_write(memory_address+1, third);
+  memory_byte_write(memory_address+2, second);
+  memory_byte_write(memory_address+3, first);
 }
 
 
