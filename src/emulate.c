@@ -69,7 +69,7 @@ typedef struct ImmediateReg
 
 typedef struct ShiftReg
 {
-  unsigned int Rm     : 4;
+	unsigned int Rm     : 4;
 	unsigned int Flag   : 1;
 	unsigned int Type   : 2;
 	unsigned int Amount : 5;
@@ -231,6 +231,7 @@ void print_ARM_state()
 }
 
 //////////  EMULATE ////////////////////////////////////////////////////////////
+#define ever (;;) // LOL
 
 void emulate()
 {
@@ -238,7 +239,7 @@ void emulate()
 	ARM->pipeline->fetched = MEM_WORD_READ(REG_READ(PC));
 	INCREMENT_PC(4);
   
-	for (;;)
+	for ever
 	{
 		ARM->pipeline->decoded = ARM->pipeline->fetched;
     ARM->pipeline->fetched = MEM_WORD_READ(REG_READ(PC));
