@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
-#include "bitwise.h"
+#include "bitwise.c"
 
 ////  CONSTANTS  ///////////////////////////////////////////////////////////////
 
@@ -170,7 +170,7 @@ int32_t as_immediate_reg(int value);
 int main(int argc, char **argv)
 {
   // Make sure input file is provided
-	printf("Running EMULATOR@%s\n", argv[0]);
+	//printf("Running EMULATOR@%s\n", argv[0]);
 	if (argc < 2) { printf("\"emulate <input_file>\""); exit(EXIT_FAILURE); }
 	
   // Allocate memory for the ARM
@@ -179,7 +179,8 @@ int main(int argc, char **argv)
 	if (ARM == NULL) { printf("MEMORY ERROR\n"); exit(EXIT_FAILURE); }
   
   // Read input file and emulate
-	read_ARM_program(argv[1]);//"/Users/Zeme/ARM11_XCODE/ARM11_XCODE/test_cases/add01");//argv[1]);
+	read_ARM_program(argv[1]);
+	//"/Users/Zeme/ARM11_XCODE/ARM11_XCODE/test_cases/add01");//argv[1]);
 	emulate();
   
   // Free memory and exit program
@@ -216,7 +217,7 @@ void print_ARM_state()
 	printf("Registers:\n");
 	for (int i = 0; i < REGISTER_COUNT - 4; i++)
   {
-    printf("$%-3i:%11i (0x%08x)\n", i, REG_READ(i), REG_READ(i));
+    printf("$%-3i: %10i (0x%08x)\n", i, REG_READ(i), REG_READ(i));
   }
 	printf("PC  : %10i (0x%08x)\n", REG_READ(PC),   REG_READ(PC));
 	printf("CPSR: %10i (0x%08x)\n", REG_READ(CPSR), REG_READ(CPSR));
@@ -226,7 +227,7 @@ void print_ARM_state()
   for (int i = 0; i < MEMORY_CAPACITY; i += 4)
 	{
 		if (MEM_WORD_READ(i) == 0) continue;
-    printf("0x%08x: 0x%x\n", i, MEM_WORD_READ_BE(i));
+    printf("0x%08x: 0x%08x\n", i, MEM_WORD_READ_BE(i));
   }
 }
 
@@ -250,7 +251,6 @@ void emulate()
 		if (check_condition_code(instr))
 		{
 			decode_instruction(ARM->pipeline->decoded);
-      print_ARM_state();
 		}
 	}
 }
@@ -324,10 +324,20 @@ void exe_single_data_transfer(int32_t word)
   
   if (PreIndexing) address += IS_SET(U) ? Offset : -Offset;
   
+  if (address >= MEMORY_CAPACITY || address < 0) goto moob;
+
 	if (IS_SET(L)) REG_WRITE(Rd, MEM_WORD_READ(address));
 	else           MEM_WORD_WRITE(address, value);
   
-  if (PostIndexing) REG_WRITE(Rn, address + (IS_SET(U) ? Offset : -Offset));
+  if (PostIndexing) REG_WRITE(Rn, address += (IS_SET(U) ? Offset : -Offset));
+  
+  if (address >= MEMORY_CAPACITY || address < 0) goto moob;
+  
+  return;
+
+moob:
+	printf("Error: Out of bounds memory access at address 0x%08x\n", address);
+	return;
 }
 
 //////////  DATA PROCESSING  ///////////////////////////////////////////////////
@@ -346,7 +356,8 @@ void exe_data_processing(int32_t word)
   int Operand1 = ARM->registers[Rn];
 	int result   = 0;
   
-  Operand2 = IS_CLEAR(I) ? as_shifted_reg(Operand2, S) : as_immediate_reg(Operand2);
+  Operand2 = IS_CLEAR(I) ? as_shifted_reg(Operand2, S) 
+  											 : as_immediate_reg(Operand2);
   
 	switch (OpCode)
 	{
@@ -372,15 +383,15 @@ void exe_data_processing(int32_t word)
 	}
   
   if (IS_CLEAR(S)) return;
-	
-  if (result == 0) CPSR_SET(ZERO);         // Z
-  CPSR_PUT(NEGATIVE, BIT_GET(result, 31));	// N
+	  
+  CPSR_PUT(ZERO, (result == 0));    
+  CPSR_PUT(NEGATIVE, BIT_GET(result, 31));	
   switch (OpCode)
   {
-    case 4  : CPSR_PUT(CARRY, CPSR_GET(OVERFLOW)); break; // add
     case 2  :
     case 3  :
-    case 10 : CPSR_PUT(CARRY, result >= 0);        break; // sub, rsb, cmp
+    case 10 : CPSR_PUT(CARRY, (result >= 0)); break; // sub, rsb, cmp
+    case 4  : CPSR_PUT(CARRY, CPSR_GET(OVERFLOW));    break; // add
   }
 }
 
@@ -404,7 +415,7 @@ void exe_multiply(int32_t word)
   
 	if (IS_CLEAR(S)) return;
 	CPSR_PUT(NEGATIVE, BIT_GET(result, 31)); // N is set to bit 31 of the result
-  if (result == 0) CPSR_SET(ZERO);         // Z is set iff the result is zero
+  CPSR_PUT(ZERO, (result == 0));           // Z is set iff the result is zero
 }
 
 //////////  BRANCH INSTRUCTION  //////////////////////////////////////////////
@@ -482,59 +493,4 @@ int32_t as_shifted_reg(int32_t value, int8_t S)
   
 	return value;
 }
-
-/*
- int8_t memory_byte_read(uint16_t memory_address)
- {
- return ARM->memory[memory_address];
- }
- 
- int32_t memory_word_read(uint16_t m)
- {
- int32_t first  = ARM->memory[m+3]& 0xFF,
- second = ARM->memory[m+2] & 0xFF,
- third  = ARM->memory[m+1] & 0xFF,
- fourth = ARM->memory[m+0] & 0xFF;
- 
- return ((first << 24) | (second << 16) | (third << 8) | fourth);
- //return ((fourth << 24) | (third << 16) | (second << 8) | first);
- }
- 
- int32_t memory_word_read2(uint16_t m)
- {
- int32_t first  = ARM->memory[m+3]& 0xFF,
- second = ARM->memory[m+2] & 0xFF,
- third  = ARM->memory[m+1] & 0xFF,
- fourth = ARM->memory[m+0] & 0xFF;
- 
- return ((fourth << 24) | (third << 16) | (second << 8) | first);
- //return ((fourth << 24) | (third << 16) | (second << 8) | first);
- }
- 
- 
- void memory_byte_write(uint16_t memory_address, int8_t byte)
- {
- ARM->memory[memory_address] = byte;
- }
- 
- void memory_word_write(uint16_t memory_address, int32_t word)
- {
- 
- int8_t first = (word >> 24) & 0xFF;
- int8_t second = (word >> 16) & 0xFF;
- int8_t third = (word >> 8) & 0xFF;
- int8_t fourth = word & 0xFF;
- 
- memory_byte_write(memory_address, word & 0xFF);
- memory_byte_write(memory_address+1, (word >> 8) & 0xFF);
- memory_byte_write(memory_address+2, (word >> 16) & 0xFF);
- memory_byte_write(memory_address+3, (word >> 24) & 0xFF);
- }
- 
- */
-
-
-
-
-
 
