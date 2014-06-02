@@ -220,7 +220,7 @@ void print_ARM_state()
   }
 	printf("PC  : %10i (0x%08x)\n", REG_READ(PC),   REG_READ(PC));
 	printf("CPSR: %10i (0x%08x)\n", REG_READ(CPSR), REG_READ(CPSR));
-
+  
   // Print non-zero memory
 	printf("Non-zero memory:\n");
   for (int i = 0; i < MEMORY_CAPACITY; i += 4)
@@ -321,7 +321,7 @@ void exe_single_data_transfer(int32_t word)
   int value   = ARM->registers[Rd];
   
   Offset = IS_CLEAR(I) ? as_immediate_reg(Offset) : as_shifted_reg(Offset, 0);
-
+  
   if (PreIndexing) address += IS_SET(U) ? Offset : -Offset;
   
 	if (IS_SET(L)) REG_WRITE(Rd, MEM_WORD_READ(address));
@@ -347,7 +347,7 @@ void exe_data_processing(int32_t word)
 	int result   = 0;
   
   Operand2 = IS_CLEAR(I) ? as_shifted_reg(Operand2, S) : as_immediate_reg(Operand2);
-
+  
 	switch (OpCode)
 	{
 		case 0  :
@@ -401,7 +401,7 @@ void exe_multiply(int32_t word)
   
 	if (IS_CLEAR(A)) REG_WRITE(Rd, result);
 	else             REG_WRITE(Rd, result += REG_READ(Rn));
-
+  
 	if (IS_CLEAR(S)) return;
 	CPSR_PUT(NEGATIVE, BIT_GET(result, 31)); // N is set to bit 31 of the result
   if (result == 0) CPSR_SET(ZERO);         // Z is set iff the result is zero
@@ -417,7 +417,7 @@ void exe_branch(int32_t word)
 	int32_t offset = (((instr->Offset) << 2) << 6) >> 6;
   
   INCREMENT_PC(offset);
-
+  
   // TODO don't like this here
   ARM->pipeline->fetched = MEM_WORD_READ(REG_READ(PC));
 	INCREMENT_PC(4);
@@ -484,54 +484,54 @@ int32_t as_shifted_reg(int32_t value, int8_t S)
 }
 
 /*
-int8_t memory_byte_read(uint16_t memory_address)
-{
-	return ARM->memory[memory_address];
-}
-
-int32_t memory_word_read(uint16_t m)
-{
-	int32_t first  = ARM->memory[m+3]& 0xFF,
-  second = ARM->memory[m+2] & 0xFF,
-  third  = ARM->memory[m+1] & 0xFF,
-  fourth = ARM->memory[m+0] & 0xFF;
-  
-	return ((first << 24) | (second << 16) | (third << 8) | fourth);
-	//return ((fourth << 24) | (third << 16) | (second << 8) | first);
-}
-
-int32_t memory_word_read2(uint16_t m)
-{
-	int32_t first  = ARM->memory[m+3]& 0xFF,
-  second = ARM->memory[m+2] & 0xFF,
-  third  = ARM->memory[m+1] & 0xFF,
-  fourth = ARM->memory[m+0] & 0xFF;
-  
-	return ((fourth << 24) | (third << 16) | (second << 8) | first);
-	//return ((fourth << 24) | (third << 16) | (second << 8) | first);
-}
-
-
-void memory_byte_write(uint16_t memory_address, int8_t byte)
-{
-  ARM->memory[memory_address] = byte;
-}
-
-void memory_word_write(uint16_t memory_address, int32_t word)
-{
-
-  int8_t first = (word >> 24) & 0xFF;
-  int8_t second = (word >> 16) & 0xFF;
-  int8_t third = (word >> 8) & 0xFF;
-  int8_t fourth = word & 0xFF;
-
-  memory_byte_write(memory_address, word & 0xFF);
-  memory_byte_write(memory_address+1, (word >> 8) & 0xFF);
-  memory_byte_write(memory_address+2, (word >> 16) & 0xFF);
-  memory_byte_write(memory_address+3, (word >> 24) & 0xFF);
-}
-
-*/
+ int8_t memory_byte_read(uint16_t memory_address)
+ {
+ return ARM->memory[memory_address];
+ }
+ 
+ int32_t memory_word_read(uint16_t m)
+ {
+ int32_t first  = ARM->memory[m+3]& 0xFF,
+ second = ARM->memory[m+2] & 0xFF,
+ third  = ARM->memory[m+1] & 0xFF,
+ fourth = ARM->memory[m+0] & 0xFF;
+ 
+ return ((first << 24) | (second << 16) | (third << 8) | fourth);
+ //return ((fourth << 24) | (third << 16) | (second << 8) | first);
+ }
+ 
+ int32_t memory_word_read2(uint16_t m)
+ {
+ int32_t first  = ARM->memory[m+3]& 0xFF,
+ second = ARM->memory[m+2] & 0xFF,
+ third  = ARM->memory[m+1] & 0xFF,
+ fourth = ARM->memory[m+0] & 0xFF;
+ 
+ return ((fourth << 24) | (third << 16) | (second << 8) | first);
+ //return ((fourth << 24) | (third << 16) | (second << 8) | first);
+ }
+ 
+ 
+ void memory_byte_write(uint16_t memory_address, int8_t byte)
+ {
+ ARM->memory[memory_address] = byte;
+ }
+ 
+ void memory_word_write(uint16_t memory_address, int32_t word)
+ {
+ 
+ int8_t first = (word >> 24) & 0xFF;
+ int8_t second = (word >> 16) & 0xFF;
+ int8_t third = (word >> 8) & 0xFF;
+ int8_t fourth = word & 0xFF;
+ 
+ memory_byte_write(memory_address, word & 0xFF);
+ memory_byte_write(memory_address+1, (word >> 8) & 0xFF);
+ memory_byte_write(memory_address+2, (word >> 16) & 0xFF);
+ memory_byte_write(memory_address+3, (word >> 24) & 0xFF);
+ }
+ 
+ */
 
 
 

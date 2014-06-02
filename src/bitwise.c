@@ -28,13 +28,13 @@ void print_bits(int32_t i)
 // Rotates bits to right
 int32_t rotate_right(int32_t i, int n)
 {
-    for (int j = 0; j < n; j++)
-    {
-        int last_bit = BIT_GET(i, 0);
-        i >>= 1;
-        BIT_PUT(i, 31, last_bit); // i = fucck
-    }
-    return i;
+  for (int j = 0; j < n; j++)
+  {
+    int last_bit = BIT_GET(i, 0);
+    i >>= 1;
+    BIT_PUT(i, 31, last_bit); // i = fucck
+  }
+  return i;
 }
 
 
