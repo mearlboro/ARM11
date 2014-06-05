@@ -10,7 +10,7 @@ all: assemble emulate
 
 assemble: assemble.o
 
-emulate: emulate.o bitwise.o
+emulate: emulate.o util/bitwise.o
 
 clean:
 	rm -f $(wildcard *.o)

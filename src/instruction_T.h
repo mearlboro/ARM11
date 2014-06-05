@@ -1,3 +1,5 @@
+#ifndef _INSTRUCTION_TYPE
+#define _INSTRUCTION_TYPE
 
 ////////////////////////////////////////////////////////////////////////////////
 ////  2. INSTRUCTION DEFINITIONS  //////////////////////////////////////////////
@@ -17,7 +19,6 @@ typedef struct DataProcessingInstr
 	unsigned int Cond     : 4;
 } DataProcessingInstr;
 
-
 typedef struct MultiplyInstr
 {
 	unsigned int Rm      : 4;
@@ -30,7 +31,6 @@ typedef struct MultiplyInstr
 	unsigned int _000000 : 6;
 	unsigned int Cond    : 4;
 } MultiplyInstr;
-
 
 typedef struct SingleDataTransferInstr
 {
@@ -45,7 +45,6 @@ typedef struct SingleDataTransferInstr
 	unsigned int _01    : 2;
 	unsigned int Cond   : 4;
 } SingleDataTransferInstr;
-
 
 typedef struct BranchInstr
 {
@@ -63,7 +62,6 @@ typedef struct ImmediateReg
 	unsigned int Rotate : 4;
 } ImmediateReg;
 
-
 typedef struct ShiftReg
 {
 	unsigned int Rm     : 4;
@@ -73,7 +71,7 @@ typedef struct ShiftReg
 } ShiftReg;
 
 
-////  2.1.2 DATA PROCESSING OPCODES DEFINITION ////////////////////////////////
+////  2.1.2 OPCODES DEFINITION /////////////////////////////////////////////////
 
 typedef enum 
 {
@@ -86,9 +84,8 @@ typedef enum
 	TEQ =  9,
 	CMP = 10,
 	ORR = 12,
-	MOV = 13
+	MOV = 13,
 } DataProcessingOpcodes;
-
 
 ////  2.2 CONDITION CODE DEFINITION  //////////////////////////////////////////
 
@@ -103,3 +100,6 @@ typedef enum
 	AL = 14
 } ConditionCode;
 
+
+
+#endif

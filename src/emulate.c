@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "bitwise.h"
+#include "util/bitwise.h"
 
 ////  PLEASE FORGIVE ME <3  ////////////////////////////////////////////////////
 
