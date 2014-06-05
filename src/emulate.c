@@ -5,6 +5,10 @@
 #include <stdio.h>
 #include "bitwise.h"
 
+////  PLEASE FORGIVE ME <3  ////////////////////////////////////////////////////
+
+#define forever while("You Are Not Upset")
+
 ////  CONSTANTS  ///////////////////////////////////////////////////////////////
 
 #define MEMORY_CAPACITY 65536
@@ -140,7 +144,7 @@ typedef enum
 typedef enum
 {
 	NEGATIVE = 31,
-	ZERO 	   = 30,
+	ZERO 	 = 30,
 	CARRY 	 = 29,
 	OVERFLOW = 28
 } CPSRFlag;
@@ -238,7 +242,7 @@ void emulate()
 	ARM->pipeline->fetched = MEM_WORD_READ(REG_READ(PC));
 	INCREMENT_PC(4);
 	
-	for (;;)
+	forever
 	{
 		ARM->pipeline->decoded = ARM->pipeline->fetched;
 		ARM->pipeline->fetched = MEM_WORD_READ(REG_READ(PC));
