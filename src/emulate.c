@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
-#include "bitwise.c"
+#include "bitwise.h"
 
 ////  CONSTANTS  ///////////////////////////////////////////////////////////////
 
