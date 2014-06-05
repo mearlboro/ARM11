@@ -3,23 +3,42 @@
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
+
 #include "bitwise.h"
 
 ////  PLEASE FORGIVE ME <3  ////////////////////////////////////////////////////
 
 #define forever while("You Are Not Upset")
 
-////  CONSTANTS  ///////////////////////////////////////////////////////////////
+//// D'AWWWWWWWWWWW ///////////////////// HUG //////////////////////////////////
 
-#define MEMORY_CAPACITY 65536
-#define REGISTER_COUNT  17
 
-////  REGISTERS READ/WRITE  ////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//// 1. ARM OBJECT  ////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+#include "ARM_T.h"
+
+
+////////////////////////////////////////////////////////////////////////////////
+//// 2. INSTRUCTION DEFINITONS  ////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+#include "instruction_T.h"
+
+
+////////////////////////////////////////////////////////////////////////////////
+//// 3. MACROS/PROTOTYPES  /////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+
+////  3.1 REGISTERS READ/WRITE  ////////////////////////////////////////////////
 
 #define REG_READ(r)     (ARM->registers[(r)])
 #define REG_WRITE(r, v) (ARM->registers[(r)] = (v))
 
-////  MEMEORY READ/WRITE  //////////////////////////////////////////////////////
+
+////  3.2 MEMEORY READ/WRITE  //////////////////////////////////////////////////
 
 #define MEM_BYTE_READ(i)      (ARM->memory[(i)])
 
@@ -33,127 +52,28 @@
                               (MEM_BYTE_READ(i+2) & 0xFF) <<  8 | \
                               (MEM_BYTE_READ(i+3) & 0xFF) <<  0 )
 
-#define MEM_BYTE_WRITE(i, b)  (ARM->memory[i] = (b))                      /**/
+#define MEM_BYTE_WRITE(i, b)  (ARM->memory[i] = (b))                      
 
 #define MEM_WORD_WRITE(i, w) { MEM_BYTE_WRITE(i+0, ((w) >>  0) & 0xFF); \
                                MEM_BYTE_WRITE(i+1, ((w) >>  8) & 0xFF); \
                                MEM_BYTE_WRITE(i+2, ((w) >> 16) & 0xFF); \
                                MEM_BYTE_WRITE(i+3, ((w) >> 24) & 0xFF); }
 
-////  CPSR/PC READ/WRITE  //////////////////////////////////////////////////////
+
+////  3.3 CPSR READ/WRITE  /////////////////////////////////////////////////////
 
 #define CPSR_CLR(f)    (BIT_CLR(REG_READ(CPSR), (f)))
 #define CPSR_SET(f)    (BIT_SET(REG_READ(CPSR), (f)))
 #define CPSR_GET(f)    (BIT_GET(REG_READ(CPSR), (f)))
 #define CPSR_PUT(f, b) { if (IS_SET(b)) CPSR_SET(f); else CPSR_CLR(f); }
 
-#define INCREMENT_PC(a) (ARM->registers[PC] += (a))                         /**/
 
-////  INSTRUCTION TYPE DEFINITIONS  ////////////////////////////////////////////
+////  3.4 PC INCREMENT  ////////////////////////////////////////////////////////
 
-typedef struct DataProcessingInstr
-{
-	unsigned int Operand2 : 12;
-	unsigned int Rd       : 4;
-	unsigned int Rn       : 4;
-	unsigned int S        : 1;
-	unsigned int OpCode   : 4;
-	unsigned int I        : 1;
-	unsigned int _00      : 2;
-	unsigned int Cond     : 4;
-} DataProcessingInstr;
+#define INCREMENT_PC(a) (ARM->registers[PC] += (a))                         
 
-
-typedef struct ImmediateReg
-{
-	unsigned int Imm    : 8;
-	unsigned int Rotate : 4;
-} ImmediateReg;
-
-
-typedef struct ShiftReg
-{
-	unsigned int Rm     : 4;
-	unsigned int Flag   : 1;
-	unsigned int Type   : 2;
-	unsigned int Amount : 5;
-} ShiftReg;
-
-
-typedef struct MultiplyInstr
-{
-	unsigned int Rm      : 4;
-	unsigned int _1001   : 4;
-	unsigned int Rs      : 4;
-	unsigned int Rn      : 4;
-	unsigned int Rd      : 4;
-	unsigned int S       : 1;
-	unsigned int A       : 1;
-	unsigned int _000000 : 6;
-	unsigned int Cond    : 4;
-} MultiplyInstr;
-
-
-typedef struct SingleDataTransferInstr
-{
-	unsigned int Offset : 12;
-	unsigned int Rd     : 4;
-	unsigned int Rn     : 4;
-	unsigned int L      : 1;
-	unsigned int _00    : 2;
-	unsigned int U      : 1;
-	unsigned int P      : 1;
-	unsigned int I      : 1;
-	unsigned int _01    : 2;
-	unsigned int Cond   : 4;
-} SingleDataTransferInstr;
-
-
-typedef struct BranchInstr
-{
-	unsigned int Offset : 24;
-	unsigned int _1010  : 4;
-	unsigned int Cond   : 4;
-} BranchInstr;
-
-
-typedef struct Pipeline
-{
-	int32_t fetched;
-	int32_t decoded;
-} Pipeline;
-
-
-typedef struct ARMState
-{
-	int8_t memory[MEMORY_CAPACITY];
-	int32_t registers[REGISTER_COUNT];
-	Pipeline *pipeline;
-} ARMState;
-
-
-typedef enum
-{
-	R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12,
-	SP, LR,
-	PC,
-	CPSR
-} Register;
-
-
-typedef enum
-{
-	NEGATIVE = 31,
-	ZERO 	 = 30,
-	CARRY 	 = 29,
-	OVERFLOW = 28
-} CPSRFlag;
-
-////  ARM OBJECT  //////////////////////////////////////////////////////////////
-
-ARMState *ARM = NULL;
-
-////  FUNCTION PROTOTYPES  /////////////////////////////////////////////////////
+ 
+////  3.5 FUNCTION PROTOTYPES  /////////////////////////////////////////////////
 
 void read_ARM_program(const char *filename);
 void print_ARM_state();
@@ -169,30 +89,50 @@ void exe_branch(int32_t word);
 int32_t as_shifted_reg(int32_t value, int8_t S);
 int32_t as_immediate_reg(int value);
 
-////  MAIN  ////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+////  4. MAIN  /////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+
+////  4.0 ARM OBJECT  //////////////////////////////////////////////////////////
+
+ARMState *ARM = NULL;
+
+
+////  4.1 MAIN  ////////////////////////////////////////////////////////////////
 
 int main(int argc, char **argv)
 {
 	// Make sure input file is provided
-	if (argc < 2) { printf("\"emulate <input_file>\""); exit(EXIT_FAILURE); }
+	if (argc < 2) 
+	{ 
+		printf("\"emulate <input_file>\""); 
+		exit(EXIT_FAILURE); 
+	}
 	
 	// Allocate memory for the ARM
 	ARM = calloc(1, sizeof(ARMState));
 	ARM->pipeline = calloc(1, sizeof(Pipeline));
-	if (ARM == NULL) { printf("MEMORY ERROR\n"); exit(EXIT_FAILURE); }
+	if (ARM == NULL) 
+	{
+		printf("MEMORY ERROR\n"); 
+		exit(EXIT_FAILURE); 
+	}
 	
 	// Read input file and emulate
 	read_ARM_program(argv[1]);
-	//"/Users/Zeme/ARM11_XCODE/ARM11_XCODE/test_cases/add01");//argv[1]);
 	emulate();
 	
 	// Free memory and exit program
 	free(ARM);
 	free(ARM->pipeline);
+
 	return EXIT_SUCCESS;
 }
 
-//////////  READ ARM PROGRAM  //////////////////////////////////////////////////
+
+////  4.2 READ ARM PROGRAM  ///////////////////////////////////////////////////
 
 void read_ARM_program(const char *filename)
 {
@@ -202,17 +142,20 @@ void read_ARM_program(const char *filename)
 	if (fseek(file, 0, SEEK_END) != 0)               goto error; // Go to end
 	long bytes = ftell(file);                                    // Read bytes
 	rewind(file);                                                // Back to start
+
 	if (fread(ARM->memory, 1, bytes, file) != bytes) goto error; // Load in ARM
 	fclose(file);                                                // Close file
+
 	if (ferror(file))                                goto error; // Error check
 	return;
 
-error:
-	perror("FILE ERROR");
-	exit(EXIT_FAILURE);
+	error:
+		perror("FILE ERROR");
+		exit(EXIT_FAILURE);
 }
 
-//////////  PRINT ARM STATE  ///////////////////////////////////////////////////
+
+////  4.3 PRINT ARM STATE  ////////////////////////////////////////////////////
 
 void print_ARM_state()
 {
@@ -234,7 +177,14 @@ void print_ARM_state()
 	}
 }
 
-//////////  EMULATE ////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////////////////
+////  5. CORE  /////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+ 
+////  5.1 EMULATE  /////////////////////////////////////////////////////////////
 
 void emulate()
 {
@@ -258,15 +208,15 @@ void emulate()
 	}
 }
 
-//////////  DECODE INSTRUCTION  ////////////////////////////////////////////////
+////  5.2 INSTRUCTION DECODER  /////////////////////////////////////////////////
 
 void decode_instruction(int32_t word)
 {
 	int code = bits_get(word, 26, 27);
 	switch (code)
 	{
-		case 1 :                            exe_single_data_transfer(word); break;
-		case 2 :                            exe_branch(word);               break;
+		case 1 : exe_single_data_transfer(word); break;
+		case 2 : exe_branch(word);               break;
 		case 0 :
 		{
 			if (IS_SET(BIT_GET(word, 25)))    exe_data_processing(word);
@@ -285,25 +235,29 @@ void decode_instruction(int32_t word)
 	}
 }
 
-//////////  CHECK CONDITION CODE  //////////////////////////////////////////////
+////  5.3 CHECK CONDITION CODE  ///////////////////////////////////////////////
 
 int check_condition_code(int32_t word)
 {
 	int cond = bits_get(word, 28, 31);
+
 	switch (cond)
 	{
-		case 0  : return  CPSR_GET(ZERO);
-		case 1  : return !CPSR_GET(ZERO);
-		case 10 : return  CPSR_GET(NEGATIVE) == CPSR_GET(OVERFLOW);
-		case 11 : return  CPSR_GET(NEGATIVE) != CPSR_GET(OVERFLOW);
-		case 12 : return !CPSR_GET(ZERO)&& (CPSR_GET(NEGATIVE)==CPSR_GET(OVERFLOW));
-		case 13 : return  CPSR_GET(ZERO)|| (CPSR_GET(NEGATIVE)!=CPSR_GET(OVERFLOW));
-		case 14 : return 1;
+		case EQ : return  CPSR_GET(ZERO);
+		case NE : return !CPSR_GET(ZERO);
+		case GE : return  CPSR_GET(NEGATIVE) == CPSR_GET(OVERFLOW);
+		case LT : return  CPSR_GET(NEGATIVE) != CPSR_GET(OVERFLOW);
+		case GT : return !CPSR_GET(ZERO)&& (CPSR_GET(NEGATIVE)==CPSR_GET(OVERFLOW));
+		case LE : return  CPSR_GET(ZERO)|| (CPSR_GET(NEGATIVE)!=CPSR_GET(OVERFLOW));
+		case AL : return 1;
 		default : return 0;
 	}
 }
 
-//////////  SINGLE DATA TRANSFER ///////////////////////////////////////////////
+
+////  5.4 IMPLEMENT INSTRUCTIONS  /////////////////////////////////////////////
+
+////  5.4.1 SINGLE DATA TRANSFER  /////////////////////////////////////////////
 
 void exe_single_data_transfer(int32_t word)
 {
@@ -338,12 +292,13 @@ void exe_single_data_transfer(int32_t word)
 	
 	return;
 
-moob:
-	printf("Error: Out of bounds memory access at address 0x%08x\n", address);
-	return;
+	moob:
+		printf("Error: Out of bounds memory access at address 0x%08x\n", address);
+		return;
 }
 
-//////////  DATA PROCESSING  ///////////////////////////////////////////////////
+
+////  5.4.2 DATA PROCESSING  ///////////////////////////////////////////////////
 
 void exe_data_processing(int32_t word)
 {
@@ -357,48 +312,53 @@ void exe_data_processing(int32_t word)
 	int Operand2 = inst->Operand2;      // 11-0
 	
 	int Operand1 = ARM->registers[Rn];
-	int result   = 0;
-	
+
 	Operand2 = IS_CLEAR(I) ? as_shifted_reg(Operand2, S) 
 	                       : as_immediate_reg(Operand2);
 	
+	int result   = 0;
+
+	// calculate result by opcode
 	switch (OpCode)
 	{
-		case 0  :
-		case 8  : result = Operand1 & Operand2; break; // and, tst
-		case 1  :
-		case 9  : result = Operand1 ^ Operand2; break; // eor, teq
-		case 2  :
-		case 10 : result = Operand1 - Operand2; break; // sub, cmp
-		case 3  : result = Operand2 - Operand1; break; // rsb
-		case 4  : result = Operand1 + Operand2; break; // add
-		case 12 : result = Operand1 | Operand2; break; // orr
-		case 13 : result = Operand2;            break; // mov
-		default : result = 0;
+		case AND :
+		case TST : result = Operand1 & Operand2; break;
+		case EOR :
+		case TEQ : result = Operand1 ^ Operand2; break; 
+		case SUB :
+		case CMP : result = Operand1 - Operand2; break; 
+		case RSB : result = Operand2 - Operand1; break; 
+		case ADD : result = Operand1 + Operand2; break; 
+		case ORR : result = Operand1 | Operand2; break; 
+		case MOV : result = Operand2;            break; 
+		default  : result = 0;
 	}
 	
+	// save results if necessary
 	switch (OpCode)
 	{
-		case 8  :
-		case 9  :
-		case 10 :                        break; // tst, teq, cmp result not written
-		default : REG_WRITE(Rd, result); break; // keep result
+		case TST :
+		case TEQ :
+		case CMP :                        break;
+		default  : REG_WRITE(Rd, result); break; 
 	}
 	
 	if (IS_CLEAR(S)) return;
-		
+	
+	// set flags
 	CPSR_PUT(ZERO, (result == 0));    
 	CPSR_PUT(NEGATIVE, BIT_GET(result, 31));	
 	switch (OpCode)
 	{
 		case 2  :
 		case 3  :
-		case 10 : CPSR_PUT(CARRY, (result >= 0));      break; // sub, rsb, cmp
-		case 4  : CPSR_PUT(CARRY, CPSR_GET(OVERFLOW)); break; // add
+		case 10 : CPSR_PUT(CARRY, (result >= 0));      break; 
+		case 4  : CPSR_PUT(CARRY, CPSR_GET(OVERFLOW)); break; 
 	}
 }
 
-//////////  MULTIPLY INSTRUCTION  //////////////////////////////////////////////
+
+////  5.4.3 MULTIPLY INSTRUCTION  //////////////////////////////////////////////
 
 void exe_multiply(int32_t word)
 {
@@ -417,11 +377,11 @@ void exe_multiply(int32_t word)
 	else             REG_WRITE(Rd, result += REG_READ(Rn));
 	
 	if (IS_CLEAR(S)) return;
-	CPSR_PUT(NEGATIVE, BIT_GET(result, 31)); // N is set to bit 31 of the result
-	CPSR_PUT(ZERO, (result == 0));           // Z is set iff the result is zero
+	CPSR_PUT(NEGATIVE, BIT_GET(result, 31)); // N is bit 31 of the result
+	CPSR_PUT(ZERO, (result == 0));           // Z is set iff result is 0
 }
 
-//////////  BRANCH INSTRUCTION  //////////////////////////////////////////////
+////  5.4.4 BRANCH INSTRUCTION  ////////////////////////////////////////////////
 
 void exe_branch(int32_t word)
 {
@@ -432,10 +392,11 @@ void exe_branch(int32_t word)
 	
 	INCREMENT_PC(offset);
 	
-	// TODO don't like this here
 	ARM->pipeline->fetched = MEM_WORD_READ(REG_READ(PC));
 	INCREMENT_PC(4);
 }
+
+////  5.4.5 SHIFTING ///////////////////////////////////////////////////////////
 
 ////  AS IMMEDIATE REGISTER  ///////////////////////////////////////////////////
 
@@ -461,7 +422,7 @@ int32_t as_shifted_reg(int32_t value, int8_t S)
 	
 	if (IS_SET(Flag))
 	{
-		int Rs = REG_READ(/*rnum=sreg->Amount*/amount);
+		int Rs = REG_READ(amount);
 		amount = bits_get(Rs, 0, 8);
 	}
 	
@@ -490,7 +451,11 @@ int32_t as_shifted_reg(int32_t value, int8_t S)
 			for (int j = 0; j < amount; j++) BIT_PUT(value, 31 - j, bit);
 			break;
 		}
-		case 3  : value = rotate_right(reg, amount); break;  //rotate right
+		case 3  : // Rotate right
+		{
+			value = rotate_right(reg, amount); 
+			break; 
+		}
 		default : exit(EXIT_FAILURE);
 	}
 	
