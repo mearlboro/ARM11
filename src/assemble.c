@@ -11,6 +11,7 @@ assemble_fp function_array[23];
 
 int32_t process_and(char **tokens) 
 {
+	
 	return 0;
 }
 
@@ -61,6 +62,10 @@ int32_t process_mov(char **tokens)
 
 int32_t process_mul(char **tokens)
 {
+	/*for (int i=0; i<tokno; i++)
+	{
+		
+	} */
 	return 10;
 }
 
@@ -164,6 +169,12 @@ void call_function(char *opcode, char **tokens)
 }
 
 
+void write_binary_file (const char *filename, void *command)
+{
+	FILE *file;
+	file=fopen(filename, "wb");
+	fwrite(command, sizeof(int32_t), 1, file);
+}
 
 
 int main(int argc, char **argv) 
