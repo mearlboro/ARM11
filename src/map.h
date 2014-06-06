@@ -28,6 +28,13 @@ typedef struct map
 
 typedef void (*map_fun)(map_entry *);
 
+typedef enum
+{
+	 MAP_FREE_NON = 0,
+	 MAP_FREE_KEY = 2,
+	 MAP_FREE_VAL = 4,
+} map_free_flag;
+
 ////////////////////////////////////////////////////////////////////////////////
 
 map  *map_new(map_cmp);
@@ -38,7 +45,7 @@ void *map_get(map *, void *);
 
 void  map_put(map *, void *, void *);
 
-void map_free(map *);
+void map_free(map *, map_free_flag);
 
 void map_iter(map *, map_fun);
 

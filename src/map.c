@@ -41,18 +41,26 @@ static map_entry *entry_new(void *key, void *value)
 
 //////////////////////////////////////////////////////////////////////////  FREE
 
-static void entry_free(map_entry *e)
+static void entry_free(map_entry *e, map_free_flag f)
 {
 	if (e == NULL) return;
-	entry_free(e->left);
-	entry_free(e->right);
+	entry_free(e->left,  f);
+	entry_free(e->right, f);
+	
+	switch (f)
+	{
+		case MAP_FREE_NON : break;
+		case MAP_FREE_VAL : free(e->value);
+		case MAP_FREE_KEY : free(e->key);
+	}
+	
 	free(e);
 }
 
 
-void map_free(map *m)
+void map_free(map *m, map_free_flag f)
 {
-	entry_free(m->root);
+	entry_free(m->root, f);
 	free(m);
 }
 
@@ -143,7 +151,7 @@ static void foo()
 	map_iter(m, &map_print_str_int);
 	
 	
-	map_free(m);
+	map_free(m, MAP_FREE_NON);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
