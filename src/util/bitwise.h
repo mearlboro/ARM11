@@ -12,9 +12,6 @@ int32_t rotate_right(int32_t i, int n);
 #define BIT_GET(i, n)    (!!((i) &   (1 << (n))))
 #define BIT_PUT(i, n, b) { if (IS_SET(b)) BIT_SET(i, n); else BIT_CLR(i, n); }
 
-#define TRUE  1
-#define FALSE 0
-
 #define IS_SET(i)   (i == 1)
 #define IS_CLEAR(i) (i == 0)
 
