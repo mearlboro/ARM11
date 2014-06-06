@@ -1,9 +1,9 @@
-#ifndef _BIT_WISE
-#define _BIT_WISE
+#ifndef BIT_WISE_H
+#define BIT_WISE_H
 
-void    print_bits(int32_t i);
-int32_t bits_get(int32_t i, int n, int m);
-int32_t rotate_right(int32_t i, int n);
+void    print_bits(int32_t);
+int32_t bits_get(int32_t, int, int);
+int32_t rotate_right(int32_t, int);
 
 // Set/Clear/Get/Put the nth bit of integer i where 0 is rightmost bit
 
