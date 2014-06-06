@@ -32,10 +32,10 @@ map *map_new(map_cmp cmp)
 static map_entry *entry_new(void *key, void *value)
 {
 	map_entry *e = mem_chk(malloc(sizeof(map_entry)), "map_entry");
-	e->key			 = key;
-	e->value		 = value;
-	e->left			 = NULL;
-	e->right		 = NULL;
+	e->key       = key;
+	e->value     = value;
+	e->left      = NULL;
+	e->right     = NULL;
 	return e;
 }
 
@@ -66,7 +66,7 @@ static void *entry_get(map_entry *e, void *key, map_cmp cmp)
 	
 	if      (c == 0) return e->value;
 	else if (c < 0)  return entry_get(e->left,  key, cmp);
-	else					   return entry_get(e->right, key, cmp);
+	else             return entry_get(e->right, key, cmp);
 }
 
 

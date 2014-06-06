@@ -9,7 +9,7 @@
 static tokens *toks_new()
 {
 	tokens *toks = mem_chk(malloc(sizeof(tokens)), "toks_new");
-	toks->toks   = mem_chk(malloc(sizeof(char *)), "toks_new");
+	toks->toks   = mem_chk(malloc(0),              "toks_new");
 	return toks;
 }
 
@@ -43,8 +43,8 @@ tokens *tokenize(char *str, const char *delim)
 	
 	while ((tok = strsep(&str, delim)) != NULL)
 	{
-		tokz							 = sizeof(char *) * (tokn + 1);
-		toks->toks				 = realloc(toks->toks, tokz);
+		tokz               = sizeof(char *) * (tokn + 1);
+		toks->toks         = realloc(toks->toks, tokz);
 		toks->toks[tokn++] = strdup(tok);
 	}
 	toks->tokn = tokn;

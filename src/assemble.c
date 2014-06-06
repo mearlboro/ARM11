@@ -26,10 +26,10 @@ int main(int argc, char **argv)
 	
 	tokens *lines = read_assembly_file(path); //toks_print(program);
 	
-	int32_t *code = assemble_program(lines); // argv[2];
+	int32_t *code = assemble_program(lines);  // argv[2];
 	
-	write_object_code(code, "tmp.out"); // argv[2];
-	
+	write_object_code(code, "tmp.out");       // argv[2];
+
   return EXIT_SUCCESS;
 }
 
@@ -55,29 +55,119 @@ tokens *read_assembly_file(const char *path)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-int32_t add_instr(char **toks, map *symtbl)  /////////////////  ADD INSTRUCTION
-{
-	char *OpCode   = toks[0];
-	char *Rd		   = toks[1];
-	char *Rn		   = toks[2];
-	char *Operand2 = toks[3];
-	
-	return 0;
-}
-
-int32_t sub_instr(char **toks, map *symtbl)  /////////////////  SUB INSTRUCTION
+int32_t add_instr(char **toks, map *symtbl)  //////////////////  add INSTRUCTION
 {
 	return 0;
 }
 
-int32_t rsb_instr(char **toks, map *symtbl)  /////////////////  RSB INSTRUCTION
+int32_t sub_instr(char **toks, map *symtbl)  //////////////////  sub INSTRUCTION
 {
-	return 0;
+	return 1;
 }
 
-int32_t mov_instr(char **toks, map *symtbl)  /////////////////  RSB INSTRUCTION
+int32_t rsb_instr(char **toks, map *symtbl)  //////////////////  rsb INSTRUCTION
 {
-	return 999999;
+	return 2;
+}
+
+int32_t and_instr(char **toks, map *symtbl)  //////////////////  and INSTRUCTION
+{
+	return 3;
+}
+
+int32_t eor_instr(char **toks, map *symtbl)  //////////////////  eor INSTRUCTION
+{
+	return 4;
+}
+
+int32_t orr_instr(char **toks, map *symtbl)  //////////////////  orr INSTRUCTION
+{
+	return 5;
+}
+
+int32_t mov_instr(char **toks, map *symtbl)  //////////////////  mov INSTRUCTION
+{
+	return 6;
+}
+
+int32_t tst_instr(char **toks, map *symtbl)  //////////////////  tst INSTRUCTION
+{
+	return 7;
+}
+
+int32_t teq_instr(char **toks, map *symtbl)  //////////////////  teq INSTRUCTION
+{
+	return 8;
+}
+
+int32_t cmp_instr(char **toks, map *symtbl)  //////////////////  cmp INSTRUCTION
+{
+	return 9;
+}
+
+int32_t mul_instr(char **toks, map *symtbl)  //////////////////  mul INSTRUCTION
+{
+	return 10;
+}
+
+int32_t mla_instr(char **toks, map *symtbl)  //////////////////  mla INSTRUCTION
+{
+	return 11;
+}
+
+int32_t ldr_instr(char **toks, map *symtbl)  //////////////////  ldr INSTRUCTION
+{
+	return 12;
+}
+
+int32_t str_instr(char **toks, map *symtbl)  //////////////////  str INSTRUCTION
+{
+	return 13;
+}
+
+int32_t beq_instr(char **toks, map *symtbl)  //////////////////  beq INSTRUCTION
+{
+	return 14;
+}
+
+int32_t bne_instr(char **toks, map *symtbl)  //////////////////  bne INSTRUCTION
+{
+	return 15;
+}
+
+int32_t bge_instr(char **toks, map *symtbl)  //////////////////  bge INSTRUCTION
+{
+	return 16;
+}
+
+int32_t blt_instr(char **toks, map *symtbl)  //////////////////  blt INSTRUCTION
+{
+	return 17;
+}
+
+int32_t bgt_instr(char **toks, map *symtbl)  //////////////////  bgt INSTRUCTION
+{
+	return 18;
+}
+
+int32_t ble_instr(char **toks, map *symtbl)  //////////////////  ble INSTRUCTION
+{
+	return 19;
+}
+
+int32_t b_instr(char **toks, map *symtbl)    /////////////////     b INSTRUCTION
+{
+	return 20;
+}
+
+int32_t lsl_instr(char **toks, map *symtbl)  //////////////////  lsl INSTRUCTION
+{
+	return 21;
+}
+
+int32_t andeq_instr(char **toks, map *symtbl)  //////////////  andeq INSTRUCTION
+{
+	return 22;
 }
 
 ////////////////////////////////////////////////////////  ASSEMBLY FUNCTION TYPE
@@ -89,19 +179,37 @@ map *create_mnemonic_to_function_map()
 	map *m = map_new(&map_cmp_str);
 	map_put(m, "add", &add_instr);
 	map_put(m, "sub", &sub_instr);
-	map_put(m, "rst", &rsb_instr);
+	map_put(m, "rsb", &rsb_instr);
+	map_put(m, "and", &and_instr);
+	map_put(m, "eor", &eor_instr);
+	map_put(m, "orr", &orr_instr);
 	map_put(m, "mov", &mov_instr);
-	// And so on...
+	map_put(m, "tst", &tst_instr);
+	map_put(m, "teq", &teq_instr);
+	map_put(m, "cmp", &cmp_instr);
+	map_put(m, "mul", &mul_instr);
+	map_put(m, "mla", &mla_instr);
+	map_put(m, "ldr", &ldr_instr);
+	map_put(m, "str", &str_instr);
+	map_put(m, "beq", &beq_instr);
+	map_put(m, "bne", &bne_instr);
+	map_put(m, "bge", &bge_instr);
+	map_put(m, "blt", &blt_instr);    // Becon Lettice Tomato
+	map_put(m, "bgt", &bgt_instr);
+	map_put(m, "ble", &ble_instr);
+	map_put(m, "b"  , &b_instr);
+	map_put(m, "lsl", &lsl_instr);
+	map_put(m, "andeq", &andeq_instr); // OCD
 	return m;
 }
 
-//////////////////////////////////////////////////////////  ASSEMBLE INSTRUCTION
+//////////////////////////////////////////////////////////////  ASSEMBLE PROGRAM
 
 int32_t *assemble_program(tokens *lines)
 {
-	// Create an array of int32_t's represeting the binary instructions
+	// Create an array of int32_t's represeting the binary instructions decoded
 	int32_t *instructions = malloc(4 * lines->tokn);
-	// Create a map mapping each mnemonic to its assembly function
+	// Create a map, mapping each mnemonic to its assembly function
 	map *mne_function_map = create_mnemonic_to_function_map();
 	// Create a sybol table for storing labels and addresses
 	map *symbol_table = map_new(&map_cmp_str);
@@ -139,7 +247,7 @@ int32_t *assemble_program(tokens *lines)
 	map_free(symbol_table);
 	// Since we are here we may as well free lines
 	toks_free(lines);
-	// Returned the assebled code
+	// Return the assembled code
 	return instructions;
 }
 
@@ -314,5 +422,35 @@ void write_object_code(int32_t *code, const char *path)
  "lsl",
  "andeq"
  };
+ char *mnemonics[] =
+ {
+ "add",
+ "sub",
+ "rsb",
+ "and",
+ "eor",
+ "orr",
+ "mov",
+ "tst",
+ "teq",
+ "cmp",
+ "mul",
+ "mla",
+ "ldr",
+ "str",
+ "beq",
+ "bne",
+ "bge",
+ "blt",
+ "bgt",
+ "ble",
+ "b",
+ "lsl",
+ "andeq"
+ };
  
+ for (int i = 0; i < 23; i++)
+ {
+ printf("int32_t %s_instr(char **toks, map *symtbl)  /////////////////  %s INSTRUCTION\n{\n\treturn %i;\n}\n\n", mnemonics[i], mnemonics[i], i);
+ }
  */
