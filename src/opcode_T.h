@@ -1,43 +1,56 @@
-#ifndef _OPCODE_TYPE
-#define _OPCODE_TYPE
+#ifndef _MNEMONIC_TYPE
+#define _MNEMONIC_TYPE
 
 ////////////////////////////////////////////////////////////////////////////////
-////  6. OPCODE DEFINITIONS  ///////////////////////////////////////////////////
+////  6. MNEMONIC DEFINITIONS  /////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
+
+#define f_enum(x) x,
+#define f_pair(x) {x, #x},
+
 
 ////  OPCODE ///////////////////////////////////////////////////////////////////
 #define opcode_tostring(f) \
 	f(and) f(eor) f(sub) f(rsb) f(add) f(tst) f(teq) f(cmp) f(orr) f(mov) f(mul) \
 	f(mla) f(beq) f(bne) f(bge) f(blt) f(bgt) f(ble) f(b) f(ldr) f(str) f(lsl) f(andeq)
 
-#define op_enum(x) x,
-#define op_array(x) {x, #x},
+enum Opcode { opcode_tostring(f_enum) OPCODE_ENUM };
 
-enum Opcode { opcode_tostring(op_enum) OPCODE_ENUM };
-
-struct { enum Opcode op; char * str; } opcode_array[] = { opcode_tostring(op_array) };
+struct { enum Opcode opcode; char * str; } 
+	opcode_array[] = { opcode_tostring(f_pair) };
 
 
 ////  CONDITION CODE //////////////////////////////////////////////////////////
 #define cond_tostring(f) \
 	f(eq) f(ne) f(ge) f(lt) f(gt) f(le) f(al)
 
-#define cond_enum(x) x,
-#define cond_array(x) {x, #x},
+enum ConditionCode { eq = 0, ne, ge = 10, lt, gt, le, al };
 
-enum ConditionCode { cond_tostring(cond_enum) COND_ENUM };
-
-struct { enum ConditionCode cond; char * str; } cond_array[] = { cond_tostring(cond_array) };
+struct { enum ConditionCode cond; char * str; } 
+	cond_array[] = { cond_tostring(f_pair) };
 
 
-void set_condition_value() {
-	cond_array[0].cond= 0;
-	cond_array[1].cond= 1;
-	cond_array[2].cond=10;
-	cond_array[3].cond=11;
-	cond_array[4].cond=12;	
-	cond_array[5].cond=13;
-	cond_array[6].cond=14;
+//// GET ENUM FROM STRING FUNCTION ////////////////////////////////////////////
+
+int str_to_opcode(char *x)
+{
+	int no_enums = sizeof(opcode_array)/sizeof(opcode_array[0]);
+	for (int i = 0; i < no_enums; i++) 
+		if (!strcmp(x, opcode_array[i].str)) 
+			return opcode_array[i].opcode;
+	return 0;
 }
+
+int str_to_cond(char *x)
+{
+	int no_enums = sizeof(cond_array)/sizeof(cond_array[0]);
+	for (int i = 0; i < no_enums; i++) 
+		if (!strcmp(x, cond_array[i].str)) 
+			return cond_array[i].cond;
+	return 0;
+}
+	
+	
+
 
 #endif
