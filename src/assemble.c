@@ -17,7 +17,7 @@
 ////  INSTRUCTION FUNCTIONS ARRAY  /////////////////////////////////////////////
 
 typedef int32_t (*assemble_fptr)( char**, map* );
-assemble_fptr function_array[23]; // TODO: don't forget to change this after implementing all
+assemble_fptr function_array[10]; 
 
 
 // data processing
@@ -41,23 +41,22 @@ int32_t assemble_lsl(char **, map*);
 int32_t assemble_andeq(char **, map*);
 
 // assigns each array member to the actual function 
-void init() 
+void function_array_init() 
 {
-	int i = 0;
+	function_array[0] = assemble_dataproc_result;
+	function_array[1] = assemble_dataproc_flags;
+	function_array[2] = assemble_dataproc_mov;
 
-	for (; i < 5; i++) function_array[i] = assemble_dataproc_result;
-	for (; i < 9; i++) function_array[i] = assemble_dataproc_flags;
-	function_array[i++] = assemble_dataproc_mov;
+	function_array[3] = assemble_mul;
+	function_array[4] = assemble_mla;
 
-	function_array[i++] = assemble_mul;
-	function_array[i++] = assemble_mla;
+	function_array[5] = assemble_branch;
 
-	for (; i < 19; i++) function_array[i] = assemble_branch;
+	function_array[6] = assemble_ldr;
+	function_array[7] = assemble_str;
 
-	function_array[i++] = assemble_ldr;
-	function_array[i++] = assemble_str;
-	function_array[i++] = assemble_lsl;
-	function_array[i] = assemble_andeq;
+	function_array[8] = assemble_lsl;
+	function_array[9] = assemble_andeq;
 }
 
 ////  OTHER FUNCTION PROTOTYPES  //////////////////////////////////////////////
@@ -69,18 +68,13 @@ int32_t *assemble_program(tokens *);
 void write_object_code(int32_t *, const char *);
 
 
-////////////////////////////////////////////////////////////////////////////////	
+////////////////////////////////////////////////////////////////////////////////
 ////  MAIN  ////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char **argv)
 {
-	//gen_chk(argc > 2, "Please provide input and output files!");
-	init();	
-
-	//const char *path = "/Users/Zeme/ARM11/arm11_1314_testsuite/test_cases/add01.s"; //argv[1];
-	
-	tokens *lines = read_assembly_file(argv[1]); //toks_print(program);
+	tokens *lines = read_assembly_file(argv[1]); toks_print(lines);
 	
 	int32_t *code = assemble_program(lines);  // argv[2];
 	
@@ -105,6 +99,7 @@ tokens *read_assembly_file(const char *path)
 	char buffer[bytes];
 
 	file_chk(fread(buffer, 1, bytes, file) == bytes, "fread"); 
+	
 	// TODO WHY DO I NEED TO DO THIS???
 	buffer[bytes-1] = '\0';                                    
 	tokens *lines = tokenize(buffer, "\n"); //toks_print(toks);
@@ -118,16 +113,17 @@ int32_t *assemble_program(tokens *lines)
 {
 	int32_t *instructions = calloc(4, lines->tokn);
 	map *symbol_table = map_new(&map_cmp_str);
+	function_array_init();
 	
 	for (int i = 0; i < lines->tokn; i++)
 	{
 		// Break the line into tokens
 		tokens *toks = tokenize(lines->toks[i], " ,");
-		//toks_print(toks);
 
 		char *mnemonic = toks->toks[0];
-		
 		int i = str_to_opcode(mnemonic);
+	
+		printf("\n%s %d",mnemonic,i);
 		assemble_fptr function = function_array[i];
 	
 		// If function is null then we have encountered a label
@@ -142,11 +138,11 @@ int32_t *assemble_program(tokens *lines)
 		int32_t binary_instr = function(toks->toks, symbol_table);		
 		instructions[i] = binary_instr;
 
-		toks_free(toks);
+		//toks_free(toks);
 	}
 
 	map_free(symbol_table);
-	toks_free(lines);
+	//toks_free(lines);
 	
 	return instructions;
 }
@@ -156,61 +152,71 @@ int32_t *assemble_program(tokens *lines)
 void write_object_code(int32_t *code, const char *path)
 {
 	FILE *file;
-	file=fopen(path, "wb");
+	file = fopen(path, "wb");
 	fwrite(code, sizeof(int32_t), sizeof(code)/sizeof(code[0]), file);
 
 	free(code);
 }
 
 
-
+////////////////////////////////////////////////////////////////////////////////
 ////  INSTRUCTION FUNCTIONS  ///////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 int32_t assemble_dataproc_result(char **tokens, map *symbol_table) { return 0; }
 
-int32_t assemble_dataproc_mov(char **tokens, map *symbol_table) { return 0; }
+int32_t assemble_dataproc_mov(char **tokens, map *symbol_table) { return 1; }
 
-int32_t assemble_dataproc_flags(char **tokens, map *symbol_table) { return 0; }
+int32_t assemble_dataproc_flags(char **tokens, map *symbol_table) { return 2; }
 
-int32_t assemble_mul(char **tokens, map *symbol_table) { return 0; }
+int32_t assemble_mul(char **tokens, map *symbol_table) { return 3; }
 
-int32_t assemble_mla(char **tokens, map *symbol_table) { return 0; }
+int32_t assemble_mla(char **tokens, map *symbol_table) { return 4; }
 
 int32_t assemble_branch(char **tokens, map *symbol_table)
 {
-	//TODO: change to tokens[0] when merging
-
 	// the following block takes the 2-char condition code mnemonic out of
 	// each branch instruction mnemonic (E.g.: ble -> le -> 13)
 	// base case is 'b' since b -> bal -> al -> 14	
 	char *cond_code = malloc(sizeof(char*));  
-	if(strcmp(tokens[1], "b") != 0) 
+	if(strcmp(tokens[0], "b") != 0) 
 	{
-		cond_code = tokens[1]; 
+		cond_code = tokens[0]; 
 		strcpy(cond_code, cond_code + 1); // removes the 'b'
 	}
 	else cond_code = "al";
 
+	char *expression = tokens[1];
+	void *get = map_get(symbol_table, expression);
+	int32_t address;
+	if (get == NULL) address = 0; //TODO: atoi?
+	else address = (int32_t) ((int32_t *) get);
 
+	address += 8;
+	int32_t offset = (((address) << 2) << 6) >> 6;
+	
 	//this bitfield will yield the BIG ENDIAN instruction in int32_t
 	BranchInstr *instr = malloc(sizeof(BranchInstr));
 	
 	instr->Cond   = str_to_cond(cond_code);
 	instr->_1010  = 10;
-	instr->Offset = 0; //TODO: symtable[tokens[1]]
+	instr->Offset = offset;
 
 	int32_t *instr32 = (int32_t *) instr;
-	//print_bits(*instr32);	
+	print_bits(*instr32);	
 	return *instr32;
 }
 
 
-int32_t assemble_ldr(char **tokens, map *symbol_table) { return 0; }
+int32_t assemble_ldr(char **tokens, map *symbol_table) { return 6; }
 
-int32_t assemble_str(char **tokens, map *symbol_table) { return 0; }
+int32_t assemble_str(char **tokens, map *symbol_table) { return 7; }
 
-int32_t assemble_lsl(char **tokens, map *symbol_table) { return 0; }
+int32_t assemble_lsl(char **tokens, map *symbol_table) { return 8; }
 
-int32_t assemble_andeq(char **tokens, map *symbol_table) { return 0; }
+int32_t assemble_andeq(char **tokens, map *symbol_table) 
+{ 
+	return 0x00000000; 
+}
 
 

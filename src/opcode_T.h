@@ -14,7 +14,14 @@
 	f(and) f(eor) f(sub) f(rsb) f(add) f(tst) f(teq) f(cmp) f(orr) f(mov) f(mul) \
 	f(mla) f(beq) f(bne) f(bge) f(blt) f(bgt) f(ble) f(b) f(ldr) f(str) f(lsl) f(andeq)
 
-enum Opcode { opcode_tostring(f_enum) OPCODE_ENUM };
+enum Opcode {   and, eor = 0, sub = 0, rsb = 0, add = 0,
+		tst, teq = 1, cmp = 1, orr = 1,
+		mov, 
+		mul, mla,
+		beq, bne = 5, bge = 5, blt = 5, bgt = 5, ble = 5, b = 5,
+		ldr, str, 
+		lsl, andeq };                             
+		
 
 struct { enum Opcode opcode; char * str; } 
 	opcode_array[] = { opcode_tostring(f_pair) };
@@ -38,7 +45,7 @@ int str_to_opcode(char *x)
 	for (int i = 0; i < no_enums; i++) 
 		if (!strcmp(x, opcode_array[i].str)) 
 			return opcode_array[i].opcode;
-	return 0;
+	return 10;
 }
 
 int str_to_cond(char *x)
@@ -47,7 +54,7 @@ int str_to_cond(char *x)
 	for (int i = 0; i < no_enums; i++) 
 		if (!strcmp(x, cond_array[i].str)) 
 			return cond_array[i].cond;
-	return 0;
+	return 10;
 }
 	
 	
