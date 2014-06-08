@@ -1,5 +1,5 @@
 CC      = gcc
-CFLAGS  = -Wall -g -D_BSD_SOURCE -D_POSIX -std=c99 -Werror -pedantic
+CFLAGS  = -Wall -g -D_BSD_SOURCE -D_POSIX -std=c99 -Werror
 
 .SUFFIXES: .c .o
 

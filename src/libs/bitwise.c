@@ -2,6 +2,9 @@
 #include <stdint.h>
 #include "bitwise.h"
 
+
+
+
 int32_t bits_get(int32_t i, int n, int m)
 {
 	// (m > n) making the mask unsigned solves the problem... but y?
@@ -22,6 +25,28 @@ void print_bits(int32_t i)
 		if (c % 8 == 0) printf(" ");
 	}
 	printf("\n");
+}
+
+
+// Prints the bits of integer i to the standard output in BIG ENDIAN
+void print_bits_BE(int32_t i)
+{
+	// VERYUGLY BUT WORKS
+	
+	//print_bits(((i & 0xFF) << 24) | ((i & 0xFF00) << 8) | ((i >> 8) & 0xFF00) | (i >> 24));
+	
+	print_bits(((i>>24)&0xff) | // move byte 3 to byte 0
+	((i<<8)&0xff0000) | // move byte 1 to byte 2
+	((i>>8)&0xff00) | // move byte 2 to byte 1
+						 ((i<<24)&0xff000000)); // byte 0 to byte 3
+	 
+//
+//	int _1 = (i & 0xFF) >> 24;
+//	int _2 = (i & 0xFF) >> 16;
+//	int _3 = (i & 0xFF) >>  8;
+//	int _4 = (i & 0xFF) >>  0;
+//	
+//	print_bits(_1 | _2 | _3 | _4);
 }
 
 

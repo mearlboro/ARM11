@@ -6,12 +6,12 @@
 #define HEAP_PRIM(type, value)\
 	do\
 	{\
-		#type *pt = malloc(sizeof(#type));\
+		type *pt = malloc(sizeof(type));\
 		*pt = value;\
 		return pt;\
 	} while(0)
 
-int *heap_int(int);
+uint16_t *heap_uint16_t(uint16_t);
 
 ////////////////////////////////////////////////////////////////////////////////
 

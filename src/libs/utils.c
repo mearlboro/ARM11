@@ -6,9 +6,10 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-int *heap_int(int i)
+
+uint16_t *heap_uint16_t(uint16_t i)
 {
-	int *pt = malloc(sizeof(int));
+	uint16_t *pt = malloc(sizeof(uint16_t ));
 	*pt = i;
 	return pt;
 }

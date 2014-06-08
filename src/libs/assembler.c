@@ -7,6 +7,7 @@
 #include "map.h"
 #include "utils.h"
 #include "assembler.h"
+#include "bitwise.h"
 
 
 //////////////////////////////////////////////////////  Free An Assembly Program
@@ -41,25 +42,30 @@ static int32_t *ass_prog_gen(ass_prog *p)
 
 ////////////////////////////////////////////////////////////  Insert Binary Word
 
-uint16_t ass_prog_insert(ass_prog *p, int32_t word, int line)
+uint16_t ass_prog_append(ass_prog *p, int32_t word)
 {
 	// Appending to end of program
-	if (line == p->line_tot)
-	{
-		p->line_tot++;
-		line++;
-		realloc_instrs(p);
-	}
-	
-	uint16_t address = line * sizeof(int32_t);
+	p->line_tot++;
+	realloc_instrs(p);
+
+	uint16_t address = p->line_tot * sizeof(int32_t);
 	bin_instr *instr = malloc(sizeof(bin_instr));
 	instr->bin_word  = word;
 	instr->word_addr = address;
-	assert(address == p->curr_addr);
-	
-	p->instrs[line]  = instr;
+
+	p->instrs[p->line_tot] = instr;
 
 	return address;
+}
+
+static void ass_prog_write(ass_prog *p, int32_t word)
+{
+	bin_instr *instr = malloc(sizeof(bin_instr));
+	instr->bin_word  = word;
+	instr->word_addr = p->curr_addr;
+	
+	p->instrs[p->curr_addr / sizeof(int32_t)] = instr;
+	p->curr_addr += sizeof(int32_t);
 }
 
 ///////////////////////////////////////////////////////  Assemble An ARM Program
@@ -79,7 +85,8 @@ int32_t *assemble(tokens *lines, ass_func ass_func, const char *delim)
 		if (strstr(label, ":")) // Label encountered
 		{
 			labelc++;
-			map_put(symtbl, strdup(label), heap_int(address));
+			label[strlen(label)-1] = '\0'; // Remove ':' // TODO want a better way...
+			map_put(symtbl, strdup(label), heap_uint16_t(address));
 			continue;
 		}
 		address += sizeof(int32_t);
@@ -104,8 +111,12 @@ int32_t *assemble(tokens *lines, ass_func ass_func, const char *delim)
 		if (strstr(mnem, ":")) continue; // Label encountered
 
 		int32_t word = ass_func(line, p);
-		assert(ass_prog_insert(p, word, i) == p->curr_addr);
-		p->curr_addr += sizeof(int32_t);
+		
+		// TODO THIS IS WHERE THE NEWLY COMPUTED WORD IS PRINTED TOGETHER WITH
+		// ITS ADDRESS. USE !xxd -b -c4" AND THE RESULT SHOULD BE EQUAL
+		printf("%08x : ", p->curr_addr); print_bits_BE(word);
+		
+		ass_prog_write(p, word);
 		
 		toks_free(line);
 	}
