@@ -1,0 +1,38 @@
+Hello guys.
+
+- Please ctrl+F “TODO” to see what’s left TO DO. (There is still a lot left TO DO)
+
+- Code compiles without -pedantic flag. This is only provisory. With -pedantic
+  it complains about stuff which will no longer be present in the source once all the
+  TODOs are done so don’t worry about it. The Makefile now has no -pedantic flag. We’ll
+  add it back when we’re finished.
+
+- The code still needs debugging but partly works for the stuff that’s been 
+  implemented. I would suggest that you just pull my branch (TestBranch) because it is the 
+  most up-to-date and merging now would be very painful and a waste of time. 
+  So we can all work on the same, compiling, assemble.c file and eventually merge on master.
+
+- You will find that I have changed how files and directories are organised. I made a lot 
+  of changes generally to get the code to compile. Please don’t be upset if you found that I 
+  changed your code. This is not definitive and everything is up for debate. I moved stuff
+  around and organised stuff as *I* thought was best. Please prove me wrong.
+
+- You will find that I have written a ton of comments, like really a lot of them. 
+  Hopefully you’ll find them useful.
+  Please read the comments because everything will be clear if you do. There I explain what 
+  I’ve done and what is left to do.
+
+- Pick whichever TODO’s you prefer and work on them.
+
+- For debugging, whenever an assembly line is
+  assembled and the binary word/instruction computed, it is printed in LITTLE ENDIAN with its
+  address in memory. So IF THE CODE WORKS what is printed to the terminal IS EXACTLY what you would
+  see if you “xxd -b -c4” the appropriate binary file. 
+
+- At the current state we have a two-pass assembly… I know shame on me but I really needed to get it
+  running as quickly as possible. Once we finish we can consider doing it in one pass (not so 
+  straightforward believe me). If you want to understand what’s going on read lib/assembler.c also
+  the long comments at the end of the file even thought they are confusing.
+
+- So now just pull/clone TestBranch and start working on the TODO’s. Good Luck I’ve been awake for 30 
+  hours now I’m going to bed. 
