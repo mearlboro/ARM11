@@ -9,10 +9,6 @@
 #include "libs/assembler.h"
 #include "instructions.h"
 
-////////////////////////////////////////////////////////////////////  DEBUG FLAG
-
-int DEBUG_ = 1;
-
 ////////////////////////////////////////////////////////////////////  PROTOTYPES
 
 tokens *read_assembly_file(const char *);
@@ -153,13 +149,13 @@ int32_t assemble_data_proc(tokens *line, int S, idx Rn, idx Rd, idx Operand2)
 	DataProcessingInstr instr;
 	
 	instr.Cond     = AL;
-	instr._00			 = 0;
+	instr._00      = 0;
 	instr.Operand2 = parse_dpi_Operand2(line, Operand2);
-	instr._I 			 = IS_EXPRESSION(line->toks[Operand2]);
+	instr._I       = IS_EXPRESSION(line->toks[Operand2]);
 	instr.OpCode   = 0; // TODO from dpi mnemonic to OpCode
-	instr.S				 = S;
-	instr.Rn			 = PARSE_REG(Rn);
-	instr.Rd			 = PARSE_REG(Rd);
+	instr.S        = S;
+	instr.Rn       = PARSE_REG(Rn);
+	instr.Rd       = PARSE_REG(Rd);
 	
 	return *((int32_t *) &instr);
 }
@@ -231,13 +227,13 @@ int32_t assemble_multiply(tokens *line, int A, idx Rd, idx Rm, idx Rs, idx Rn)
 	
 	instr.Cond    = AL;
 	instr._000000	= 0;
-	instr.A			  = A;
-	instr.S			  = 0;
-	instr.Rd			= PARSE_REG(Rd);
-	instr.Rn			= PARSE_REG(Rn);
-	instr.Rs			= PARSE_REG(Rs);
+	instr.A       = A;
+	instr.S       = 0;
+	instr.Rd      = PARSE_REG(Rd);
+	instr.Rn      = PARSE_REG(Rn);
+	instr.Rs      = PARSE_REG(Rs);
 	instr._1001   = 9;
-	instr.Rm			= PARSE_REG(Rm);
+	instr.Rm      = PARSE_REG(Rm);
 	
 	return *((int32_t *) &instr);
 }
@@ -344,14 +340,14 @@ int32_t assemble_single_data_transfer(tokens *line, ass_prog *p)
 	SingleDataTransferInstr instr;
 	
 	instr.Cond   = AL;
-	instr._01	   = 1; // 2?
-	instr._I		 = 1; // We don't support shift registers syntax yet
-	instr.P			 = PreIndexed;
-	instr.U			 = 0; // Not supported yet
-	instr._00		 = 0;
-	instr.L			 = strcmp(line->toks[0], "ldr") == 0; // Set if load
+	instr._01    = 1; // 2?
+	instr._I     = 1; // We don't support shift registers syntax yet
+	instr.P      = PreIndexed;
+	instr.U      = 0; // Not supported yet
+	instr._00    = 0;
+	instr.L      = strcmp(line->toks[0], "ldr") == 0; // Set if load
 	instr.Rn     = Rn;
-	instr.Rd		 = PARSE_REG(1);
+	instr.Rd     = PARSE_REG(1);
 	instr.Offset = Offset;
 	
 	return *((int32_t *) &instr);
@@ -393,7 +389,7 @@ int32_t assemble_function(tokens *line, ass_prog *p)
 		map_put(ass_funcs, "beq", NULL);
 		map_put(ass_funcs, "bne", NULL);
 		map_put(ass_funcs, "bge", NULL);
-	  map_put(ass_funcs, "bgt", NULL);
+		map_put(ass_funcs, "bgt", NULL);
 		map_put(ass_funcs, "ble", NULL);
 		map_put(ass_funcs, "b"  , NULL);
 		map_put(ass_funcs, "lsl", NULL);
