@@ -73,7 +73,7 @@ int32_t *assemble(tokens *lines, ass_func ass_func, const char *delim)
 	
 	for (int i = 0; i < lines->tokn; i++)
 	{
-		tokens *line  = tokenize(lines->toks[i], delim);
+		tokens *line  = tokenize(strdup(lines->toks[i]), delim); // without strdup strange results
 		char   *label = line->toks[0];
 		
 		if (strstr(label, ":")) // Label encountered
@@ -98,7 +98,7 @@ int32_t *assemble(tokens *lines, ass_func ass_func, const char *delim)
 	// Pass #2
 	for (int i = 0; i < lines->tokn; i++)
 	{
-		tokens *line = tokenize(lines->toks[i], delim);
+		tokens *line = tokenize(strdup(lines->toks[i]), delim);
 		char   *mnem = line->toks[0];
 		
 		if (strstr(mnem, ":")) continue; // Label encountered

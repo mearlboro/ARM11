@@ -22,7 +22,7 @@ int map_cmp_int(void *mic, void *mik)
 
 map *map_new(map_cmp cmp)
 {
-	map *m  = mem_chk(malloc(sizeof(map)), "map_new");
+	map *m  = malloc(sizeof(map));
 	m->cmp  = cmp;
 	m->root = NULL;
 	return m;
@@ -31,7 +31,7 @@ map *map_new(map_cmp cmp)
 
 static map_entry *entry_new(void *key, void *value)
 {
-	map_entry *e = mem_chk(malloc(sizeof(map_entry)), "map_entry");
+	map_entry *e = malloc(sizeof(map_entry));
 	e->key       = key;
 	e->value     = value;
 	e->left      = NULL;
@@ -50,7 +50,7 @@ static void entry_free(map_entry *e, map_free_flag f)
 	switch (f)
 	{
 		case MAP_FREE_NON : break;
-		case MAP_FREE_VAL : free(e->value);
+		case MAP_FREE_VAL : free(e->value); break;
 		case MAP_FREE_KEY : free(e->key);
 	}
 	
@@ -122,7 +122,7 @@ void map_iter(map *m, map_fun f)
 
 //////////////////////////////////////////////////////////////////////////  TEST
 
-static void map_print_str_int(map_entry *e)
+/*static void map_print_str_int(map_entry *e)
 {
 	printf("(%s, %i)\n", (char *) e->key, *(int *) e->value);
 }
@@ -152,6 +152,6 @@ static void foo()
 	
 	
 	map_free(m, MAP_FREE_NON);
-}
+}*/
 
 ////////////////////////////////////////////////////////////////////////////////

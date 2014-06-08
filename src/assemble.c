@@ -2,36 +2,51 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include "tokens.h"
-#include "map.h"
-#include "utils.h"
-#include "instruction_T.h"
-#include "bitwise.h"
+#include "libs/utils.h"
+#include "libs/tokens.h"
+#include "libs/map.h"
+#include "libs/bitwise.h"
+#include "libs/assembler.h"
+#include "instructions.h"
 
-//////////////////////////////////////////////////////////////  PROGAM VARIABLES
+////////////////////////////////////////////////////////////////////  DEBUG FLAG
+
+int DEBUG_ = 1;
 
 ////////////////////////////////////////////////////////////////////  PROTOTYPES
 
 tokens *read_assembly_file(const char *);
 
-int32_t *assemble_program(tokens *);
+int32_t assemble_function(tokens *, ass_prog *);
 
 void write_object_code(int32_t *, const char *);
+
+int32_t assemble_single_data_transfer(tokens *, ass_prog *);
 
 //////////////////////////////////////////////////////////////////////////  MAIN
 
 int main(int argc, char **argv)
 {
-	//gen_chk(argc > 2, "Please provide input and output files!");
+	/*if (argc < 3)
+	{
+		fprintf(stderr, "%s\n", "Please provide input and output files!");
+		exit(EXIT_FAILURE);
+	}
 	
-	const char *path = "/Users/Zeme/ARM11/arm11_1314_testsuite/test_cases/add01.s"; //argv[1];
+	tokens *lines = read_assembly_file(argv[1]); if (DEBUG_) toks_print(lines);
 	
-	tokens *lines = read_assembly_file(path); //toks_print(program);
+	int32_t *code = assemble(lines, &assemble_function, " ,");
 	
-	int32_t *code = assemble_program(lines);  // argv[2];
-	
-	write_object_code(code, "tmp.out");       // argv[2];
+	write_object_code(code, argv[2]);*/
 
+	tokens *lines = read_assembly_file("/Users/Zeme/ARM11/arm11_1314_testsuite/test_cases/add01.s");
+	//if (DEBUG_) toks_print(lines);
+	
+	int32_t *code = assemble(lines, &assemble_function, " ,");
+	
+	//write_object_code(code, argv[2]);
+
+	
   return EXIT_SUCCESS;
 }
 
@@ -41,274 +56,360 @@ tokens *read_assembly_file(const char *path)
 {
 	FILE *file = NULL;
 	
-	file_chk((file = fopen(path, "rt")) != NULL, "fopen");
-	file_chk(fseek(file, 0, SEEK_END)   != -1,   "fseek");
-	
+	file = fopen(path, "rt");
+	fseek(file, 0, SEEK_END);
+
 	long bytes = ftell(file);
 	rewind(file);
 	
 	char buffer[bytes];
-	file_chk(fread(buffer, 1, bytes, file) == bytes, "fread"); //printf("File:\n%s\n\n", buffer);
-	buffer[bytes-1] = '\0';																		 // TODO WHY DO I NEED TO DO THIS???
+	fread(buffer, 1, bytes, file);
+	buffer[bytes-1] = '\0';					//if (DEBUG_) printf("%s\n", buffer);
 	
-	
-	tokens *lines = tokenize(buffer, "\n");										 //toks_print(toks);
-	return lines;
+	return tokenize(buffer, "\n");
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////
+////    ALL INSTRUCTIONS    ////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
-int as_immediate_const(char *Operand2)
+typedef int idx;
+
+/* Returns whether or not the given token is of the form <#expression> */
+#define IS_EXPRESSION(tok) (tok[0] == '#' || tok[0] == '=')
+
+/*
+ * Computes the value of a register given the position/index of its token in
+ * line->toks array. If R == -1 it means that the register requested is
+ * ignored by the instruction and can therefore by any value (we pick 0).
+ * If R is equal to the value of PC then its value is returned.
+ */
+#define PARSE_REG(R)\
+	(((R) == -1) ? 0 : (((R) == PC) ? PC : atoi(line->toks[R]+1))) // +1 removes 'r'
+
+/* Converts a string to a number. Works equally well for Hex and Dec numbers */
+#define PARSE_EXPR(tok) ((int) strtol(tok+1, NULL, 0)) // +1 removes # or =
+
+////////////////////////////////////////////////////////////////////////////////
+////    DATA PROCESSING    /////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+/*
+ * Interprest Operand2 as a shifted register and computes its value
+ */
+int as_shifted_register(tokens *line, idx Operand2) { return -1; } // Optional
+
+/*
+ * Converts a numeric constant into a 12-bit Operand2/Offset value, as defined
+ * in the data processing instruction format (Rotate + Imm).
+ *
+ * The tokene represeting the numeric constant can either be in decimal or
+ * hexadecimal format (0x prefix for hexadecimal).
+ */
+int as_immediate_value(char *tok)
 {
-	unsigned long value;
-	if   (strstr(Operand2, "0x")) value = strtoul(Operand2, 0, 16);     // Hexa
-	else												  value = atoi(Operand2 + 1);           // Decimal
-	// TODO inverse-rotate n.o.t e.a.s.y
-	return 0;
+	int constant = PARSE_EXPR(tok);
+	// TODO Compute 12-bit immediate value for tok
+	return constant;
 }
 
-int is_immediate_const(char *Operand2) { return strstr(Operand2, "#") != NULL; }
-
-int  as_shift_register(char *Operand2) { return -1; }        // Optional for now
-
-int dpi_mne_to_opcode(char *mnemonic)  { return 0; }           // TODO implement
-
-int parse_Operand2(char *Operand2)
+/* 
+ * Operand2 in a data processing instruction can take two forms:
+ *   <#expression> - Represents a numeric constant to be converted to a 12-bit
+ *                   immediate value according to the DPI format (Rotate + Imm)
+ *   Rm{,<shift>}  - Represents a shifted register (optional)
+ *
+ * This function determines whether Operand2 is an expression or a shifted
+ * register and computes and returns its value.
+ */
+int parse_dpi_Operand2(tokens *line, idx Operand2)
 {
-	return (is_immediate_const(Operand2)) ? as_immediate_const(Operand2)
-	                                      : as_shift_register(Operand2);
+	if (IS_EXPRESSION(line->toks[Operand2]))
+	{
+		return as_immediate_value(line->toks[Operand2]);
+	}
+	return as_shifted_register(line, Operand2);
 }
 
-
-int32_t assemble_dpi(char **toks, int S, int Rn, int Rd, int Operand2)
+/*
+ * Assembles a data processing instruction.
+ * 
+ * The syntax for the three main 'types' of data processing instructions is:
+ *   <opcode>   - Is the instruction mnemonic associated with an integer OpCode
+ *   Rd, Rn, Rm - Represent registers (r0, r1, PC, ...)
+ *   <Operand2> - Represents an operand. It can be interpreted as a numeric 
+ *                constant or a shifted register
+ *
+ * line     - Contains the tokens forming this instruction
+ * S        - Represents whether or not the CPRS flags are to be set
+ * Rn       - Is the position/index/idx of the Rn token in the line->toks array
+ * Rs       - Similarly, for Rs
+ * Operand2 - Similarly, for Operand2
+ *
+ * Immediate flag (I) is set when Operand2 is a numeric constant.
+ */
+int32_t assemble_data_proc(tokens *line, int S, idx Rn, idx Rd, idx Operand2)
 {
-	// [Cond 00 I OpCode S Rn   Rd   Operand2    ]
 	DataProcessingInstr instr;
 	
 	instr.Cond     = AL;
 	instr._00			 = 0;
-	instr._I			 = is_immediate_const(toks[Operand2]);
-	instr.OpCode   = dpi_mne_to_opcode(toks[0]);
+	instr.Operand2 = parse_dpi_Operand2(line, Operand2);
+	instr._I 			 = IS_EXPRESSION(line->toks[Operand2]);
+	instr.OpCode   = 0; // TODO from dpi mnemonic to OpCode
 	instr.S				 = S;
-	instr.Rn			 = (Rn == -1) ? 0 : atoi(toks[Rn]+1);
-	instr.Rd			 = (Rd == -1) ? 0 : atoi(toks[Rd]+1);
-	instr.Operand2 = parse_Operand2(toks[Operand2]);
+	instr.Rn			 = PARSE_REG(Rn);
+	instr.Rd			 = PARSE_REG(Rd);
 	
 	return *((int32_t *) &instr);
 }
 
-int32_t ass_dpi_result(char **toks, map *symtbl) // and, eor, sub, rsb, add, orr
+/*
+ * Assembles a data processing instruction that computes results.
+ *
+ * (and, eor, sub, rsb, add, orr)
+ * Syntax: <opcode> Rd, Rn, <Operand2>
+ * 
+ * CPRS flags are not set, hence S is clear.
+ * Positions of tokens Rn, Rd and Operand2 are 2, 1, and 3 respectively.
+ */
+int32_t assemble_dpi_result(tokens *line, ass_prog *p)
 {
-	// Syntax: <opcode> Rd, Rn, <Operand2>
-	return assemble_dpi(toks, 0, 2, 1, 3);
+	return assemble_data_proc(line, 0, 2, 1, 3);
 }
 
-int32_t ass_dpi_mov(char **toks, map *symtbl) // mov
+/*
+ * Assembles a single operand assignment (mov) instruction.
+ * Syntax: mov Rd, <Operand2> { Rn ignored }
+ *
+ * CPRS flags are not set, hence S is clear.
+ * Positions of tokens Rd and Operand2 are 1 and 2 respectively.
+ * Rn is ignored therefore -1 is passed as the 'position' of token Rn.
+ */
+int32_t assemble_mov(tokens *line, ass_prog *p)
 {
-	// Syntax: mov Rd, <Operand2> { Rn ignored }
-	return assemble_dpi(toks, 0, -1, 1, 2);
+	return assemble_data_proc(line, 0, -1, 1, 2);
 }
 
-int32_t ass_dpi_cprs(char **toks, map *symtbl)// tst, teq, cmp
+/*
+ * Assembles a data processing instruction that does not compute results, 
+ * but does set the CPSR flags.
+ *
+ * (are tst, teq, cmp)
+ * Syntax: <opcode> Rn, <Operand2> { Rd ignored }
+ *
+ * CPRS flags ARE set, hence a S is set to 1.
+ * Positions of tokens Rn and Operand2 are 1 and 2 respectively.
+ * Rd is ignored therefore -1 is passed as the 'position' of token Rd.
+ */
+int32_t assemble_dpi_cprs(tokens *line, ass_prog *p)
 {
-	// Syntax: <opcode> Rn, <Operand2> { Rd ignored }
-	return assemble_dpi(toks, 1, 1, -1, 2);
+	return assemble_data_proc(line, 1, 1, -1, 2);
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////
+////    MULTIPLY    ////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
-int32_t assemble_mul(char **toks, int A, int Rd, int Rm, int Rs, int Rn)
+/*
+ * Assembles a multiply instruction.
+ *
+ * Multiply instructions are one of (mla) and (mul) depending on whether or not
+ * the instruction has an accumulate register Rn.
+ * Rd, Rs, Rn, Rm - Represent registers (r0, r1, PC, ...)
+ *
+ * line - Contains the tokens forming this instruction
+ * A    - Represents whether or not this multiply instruction has an accumulate
+ * Rd   - Is the position/index/idx of the Rd token in the line->toks array
+ * Rm   - Similarly, for Rm
+ * Rs   - Similarly, for Rs
+ * Rn   - Similarly, for Rn
+ */
+int32_t assemble_multiply(tokens *line, int A, idx Rd, idx Rm, idx Rs, idx Rn)
 {
-	// [Cond 000000 A S Rd   Rn   Rs   1001 Rm  ]
 	MultiplyInstr instr;
 	
 	instr.Cond    = AL;
 	instr._000000	= 0;
 	instr.A			  = A;
 	instr.S			  = 0;
-	instr.Rd			= atoi(toks[Rd]+1);
-	instr.Rn			= (Rn == -1) ? 0 : atoi(toks[Rn]+1);
-	instr.Rs			= atoi(toks[Rs]+1);
+	instr.Rd			= PARSE_REG(Rd);
+	instr.Rn			= PARSE_REG(Rn);
+	instr.Rs			= PARSE_REG(Rs);
 	instr._1001   = 9;
-	instr.Rm			= atoi(toks[Rm]+1);
+	instr.Rm			= PARSE_REG(Rm);
 	
 	return *((int32_t *) &instr);
 }
 
-int32_t ass_mul(char **toks, map *symtbl) // mul
+/*
+ * Assembles the multiply (mul) instruction.
+ * Syntax: mul Rd, Rm, Rs { Rn ignored }
+ *
+ * This instruction doesn't accumulates the result hence A is clear.
+ * Positions of tokens Rd, Rm and Rs are 1, 2 and 3 respectively.
+ * Rn is ignored therefore -1 is passed as the 'position' of token Rn.
+ */
+int32_t assemble_mul(tokens *line, ass_prog *p) // mul
 {
-	// Syntax: mul Rd, Rm, Rs { Rn ignored }
-	return assemble_mul(toks, 0, 1, 2, 3, -1);
+	return assemble_multiply(line, 0, 1, 2, 3, -1);
 }
 
-int32_t ass_mla(char **toks, map *symtbl) // mla
+/*
+ * Assembles the multiply with accumulate (mla) instruction.
+ * Syntax: mla Rd, Rm, Rs, Rn
+ *
+ * This instruction does accumulates the result hence A is set to 1.
+ * Positions of tokens Rd, Rm, Rs and Rn are 1, 2, 3 and 4 respectively.
+ */
+int32_t assemble_mla(tokens *line, ass_prog *p)
 {
-	// Syntax: mla Rd, Rm, Rs, Rn
-	return assemble_mul(toks, 1, 1, 2, 3, 4);
+	return assemble_multiply(line, 1, 1, 2, 3, 4);
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////
+////    SINGLE DATA TRANSFER    ////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
-int32_t assemble_sdt(char **toks, map *symtbl)
+/*
+ * If <address> is of the form <=expression> then it is interpreted as a 
+ * numeric constant. If its value is not above a set threshold (0xFF) then
+ * this ldr instruction can be assembled as a mov instruction.
+ *
+ * Otherwise we put the value of <=expression> in four bytes at the end of the
+ * assembled program, and use the address of this value, with the PC as the 
+ * base register and a calculated offset, in the assembled ldr instruction.
+ * It will be always a pre-indexed address.
+ */
+int32_t assemble_sdti_with_expression(tokens *line, ass_prog *p, char *address)
 {
-	// [Cond 01 I P U 0 0 L Rn   Rd   Offset   ]
+	static const int threshold = 0xFF;
+	
+	int address_value = PARSE_EXPR(address);
+	if (address_value <= threshold)
+	{
+		// Substitute '=' with '#' (Same as address[0] = '#'?)
+		line->toks[2][0] = '#';
+		return assemble_mov(line, p);
+	}
+	
+	// Place the constant in four bytes at the end of the assembly ﬁle
+	int32_t last_address = ass_prog_insert(p, address_value, p->line_tot);
+	
+	int offset = last_address - p->curr_addr - 8; // Calcualate offset (+8?)
+	
+	// We now need to generate ldr Rd, [PC, #offset]
+	line->toks[2] = "[PC";
+	line->toks[3] = "#offset]"; // TODO
+	
+	// Call the assembly instruction
+	return assemble_single_data_transfer(line, p);
+}
+
+/*
+ * Assembles a single data transfer instruction.
+ *
+ * Syntax: <ldr/str> Rd, <address>.
+ *   <ldr/str> - Is the instruction mnemonic, either load or store instruction
+ *               ldr will require L bit to be set. str will have L bit clear
+ *   Rd        - Represent the destination register (r0, r1, PC, ...)
+ *   <address> - Can take one of several forms
+ *
+ */
+int32_t assemble_single_data_transfer(tokens *line, ass_prog *p)
+{
+
+	char *address = line->toks[2];
+	
+	if (IS_EXPRESSION(address))
+	{
+		return assemble_sdti_with_expression(line, p, address);
+	}
+		
+	// Because of the way a pre-indexed address is specified, if the last
+	// character of the last token is ']' then we have pre-idexed addressing.
+	char *last_tok = line->toks[line->tokn-1];
+	int PreIndexed = last_tok[strlen(last_tok)] == ']';
+	
+	// Now we want to get rid of annoying [ ] brakets so lets retokenize the line
+	int Rn		 = 0; // TODO remove brakets and parse
+	int Offset = 0; // TODO remove last braken and as_immediate_value() PARSE_EXPR(line->toks[3]);
+	
+	// We have a case of lrd/str Rd, [Rn], using base register Rn, with an offset of zero.
+	if (line->tokn == 3)
+	{
+		Offset = 0;
+	}
+	
 	SingleDataTransferInstr instr;
-
+	
+	instr.Cond   = AL;
+	instr._01	   = 1; // 2?
+	instr._I		 = 1; // We don't support shift registers syntax yet
+	instr.P			 = PreIndexed;
+	instr.U			 = 0; // Not supported yet
+	instr._00		 = 0;
+	instr.L			 = strcmp(line->toks[0], "ldr") == 0; // Set if load
+	instr.Rn     = Rn;
+	instr.Rd		 = PARSE_REG(1);
+	instr.Offset = Offset;
 	
 	return *((int32_t *) &instr);
 }
 
-
+////////////////////////////////////////////////////////////////////////////////
+////    ADNEQ INSTRUCTIONS    //////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-int32_t andeq_instr(char **toks, map *symtbl)  // andeq
+int32_t andeq_instr(char **toks, ass_prog *p)  // andeq
 {
 	return 0x00000000;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+////    ASSEMBLE FUNCTION    ///////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
-int32_t lsl_instr(char **toks, map *symtbl)  // lsl 
+int32_t assemble_function(tokens *line, ass_prog *p)
 {
-	return 21;
+	static map *ass_funcs = NULL;
+	if (ass_funcs == NULL)
+	{
+		ass_funcs = map_new(&map_cmp_str);
+		map_put(ass_funcs, "add", &assemble_dpi_result);
+		map_put(ass_funcs, "sub", &assemble_dpi_result);
+		map_put(ass_funcs, "rsb", &assemble_dpi_result);
+		map_put(ass_funcs, "and", &assemble_dpi_result);
+		map_put(ass_funcs, "eor", &assemble_dpi_result);
+		map_put(ass_funcs, "orr", &assemble_dpi_result);
+		map_put(ass_funcs, "mov", &assemble_mov);
+		map_put(ass_funcs, "tst", &assemble_dpi_cprs);
+		map_put(ass_funcs, "teq", &assemble_dpi_cprs);
+		map_put(ass_funcs, "cmp", &assemble_dpi_cprs);
+		map_put(ass_funcs, "mul", &assemble_mul);
+		map_put(ass_funcs, "mla", &assemble_mla);
+		map_put(ass_funcs, "ldr", NULL);
+		map_put(ass_funcs, "str", NULL);
+		map_put(ass_funcs, "beq", NULL);
+		map_put(ass_funcs, "bne", NULL);
+		map_put(ass_funcs, "bge", NULL);
+	  map_put(ass_funcs, "bgt", NULL);
+		map_put(ass_funcs, "ble", NULL);
+		map_put(ass_funcs, "b"  , NULL);
+		map_put(ass_funcs, "lsl", NULL);
+		map_put(ass_funcs, "andeq", NULL);
+	}
+	
+	toks_print(line);
+	
+	int32_t word = ((ass_func) map_get(ass_funcs, line->toks[0]))(line, p);
+	print_bits(word);
+	return word;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-
-int32_t ldr_instr(char **toks, map *symtbl)  //////////////////  ldr INSTRUCTION
-{
-	// Syntax: ldr Rd, address
-	// L = 1;
-	return 12;
-}
-
-int32_t str_instr(char **toks, map *symtbl)  //////////////////  str INSTRUCTION
-{
-	return 13;
-}
-
-int32_t beq_instr(char **toks, map *symtbl)  //////////////////  beq INSTRUCTION
-{
-	return 14;
-}
-
-int32_t bne_instr(char **toks, map *symtbl)  //////////////////  bne INSTRUCTION
-{
-	return 15;
-}
-
-int32_t bge_instr(char **toks, map *symtbl)  //////////////////  bge INSTRUCTION
-{
-	return 16;
-}
-
-int32_t blt_instr(char **toks, map *symtbl)  //////////////////  blt INSTRUCTION
-{
-	return 17;
-}
-
-int32_t bgt_instr(char **toks, map *symtbl)  //////////////////  bgt INSTRUCTION
-{
-	return 18;
-}
-
-int32_t ble_instr(char **toks, map *symtbl)  //////////////////  ble INSTRUCTION
-{
-	return 19;
-}
-
-int32_t b_instr(char **toks, map *symtbl)    /////////////////     b INSTRUCTION
-{
-	return 20;
-}
-
-
-
-////////////////////////////////////////////////////////  ASSEMBLY FUNCTION TYPE
-
-typedef int32_t (*assembly_function)(char **, map *);
-
-map *create_mnemonic_to_function_map()
-{
-	map *m = map_new(&map_cmp_str);
-	map_put(m, "add", &ass_dpi_result);
-	map_put(m, "sub", &ass_dpi_result);
-	map_put(m, "rsb", &ass_dpi_result);
-	map_put(m, "and", &ass_dpi_result);
-	map_put(m, "eor", &ass_dpi_result);
-	map_put(m, "orr", &ass_dpi_result);
-	map_put(m, "mov", &ass_dpi_mov);
-	map_put(m, "tst", &ass_dpi_cprs);
-	map_put(m, "teq", &ass_dpi_cprs);
-	map_put(m, "cmp", &ass_dpi_cprs);
-	map_put(m, "mul", &ass_mul);
-	map_put(m, "mla", &ass_mla);
-	map_put(m, "ldr", &ldr_instr);
-	map_put(m, "str", &str_instr);
-	map_put(m, "beq", &beq_instr);
-	map_put(m, "bne", &bne_instr);
-	map_put(m, "bge", &bge_instr);
-	map_put(m, "blt", &blt_instr);    // Becon Lettice Tomato
-	map_put(m, "bgt", &bgt_instr);
-	map_put(m, "ble", &ble_instr);
-	map_put(m, "b"  , &b_instr);
-	map_put(m, "lsl", &lsl_instr);
-	map_put(m, "andeq", &andeq_instr); // OCD
-	return m;
-}
-
-//////////////////////////////////////////////////////////////  ASSEMBLE PROGRAM
-
-int32_t *assemble_program(tokens *lines)
-{
-	// Create an array of int32_t's represeting the binary instructions decoded
-	int32_t *instructions = malloc(4 * lines->tokn);
-	// Create a map, mapping each mnemonic to its assembly function
-	map *mne_function_map = create_mnemonic_to_function_map();
-	// Create a sybol table for storing labels and addresses
-	map *symbol_table = map_new(&map_cmp_str);
-	// For each assembly line in the program
-	for (int i = 0; i < lines->tokn; i++)
-	{
-		// Break the line into tokens
-		tokens *toks = tokenize(lines->toks[i], " ,"); toks_print(toks);
-		// Obtain the mnemonic, always the first token
-		char *mnemonic = toks->toks[0];
-		// Obtain assmbly function from the mnemonic string
-		assembly_function assembly_fun = map_get(mne_function_map, mnemonic);
-		// If assembly_fun is null then we have encountered a label
-		if (assembly_fun == NULL)
-		{
-			// Compute the machine address and store it on the heap
-			int32_t *address = malloc(4);
-			// The address is the current line number * 4 byte (since 32-bit words)
-			*address = 4 * i;
-			// Insert the new label into the symbol table
-			map_put(symbol_table, mnemonic, address);
-			// Now simply continue to the next instruction
-			continue;
-		}
-		// Invoke function and onbtain a new binary instruction
-		int32_t binary_instr = assembly_fun(toks->toks, symbol_table); print_bits(binary_instr);
-		// Store the binary instruction into the array
-		instructions[i] = binary_instr;
-		// We no longer need these tokens
-		toks_free(toks);
-	}
-	// We no longer need this map
-	map_free(mne_function_map, MAP_FREE_NON);
-	// We no longer need to symbol table
-	map_free(symbol_table, MAP_FREE_VAL);
-	// Since we are here we may as well free lines
-	toks_free(lines);
-	// Return the assembled code
-	return instructions;
-}
-
-////////////////////////////////////////////////////////  WRITE BINARY ONTO FILE
+////    WRITE OBJECT CODE    ///////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 void write_object_code(int32_t *code, const char *path)
 {
@@ -319,211 +420,21 @@ void write_object_code(int32_t *code, const char *path)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-
-
-
 /*
- add Add Rd := Rn + Op2 Data Processing
- sub Subtract Rd := Rn - Op2 Data Processing
- rsb Reverse Subtract Rd := Op2 - Rn Data Processing
- and AND Rd := Rn AND Op2 Data Processing
- eor Exclusive OR Rd := Rn XOR Op2 Data Processing
- orr OR Rd := Rn OR Op2 Data Processing
- mov Move Assignment Rd := Op2 Data Processing
- tst Test bits CPSR ﬂags := Rn AND Op2 Data Processing
- teq Test bitwise equality CPSR ﬂags := Rn XOR Op2 Data Processing
- cmp Compare CPSR ﬂags := Rn - Op2 Data Processing
- */
-
-// LECTURE 5 FROM TOP TO BOTTOM
-// GLOBAL VARIABLES AVOID!!!
-// COMMENT EVERYTHING!!!
-// MAKE SURE YOU HAVE PROTOTYPES IN .h FILE AND INCLUDE IT
-
-
-/*
- 
- int main(int argc, char **argv) {
- 
- 
- ListNode * head = malloc(sizeof(ListNode));
- head->data = 4;
- head->next = NULL;
- head=list_insert(head,13);
- list_print(head);
- head=list_insert(head,4);
- list_print(head);
- head=list_insert(head,6);
- list_print(head);
- head=list_insert(head,10);
- list_print(head);
- head=list_remove(head,6);
- list_print(head);
- head=list_remove(head,4);
- printf("%d", (list_search(head, 4) == NULL) ? 0 : 1);
- 
- SymbolTable *new = symtable_init();
- 
- symtable_put(new,"lala",0x99);
- symtable_print(new);
- symtable_remove(new, "lala");
- symtable_print(new);
- 
- return EXIT_SUCCESS;
- }
- 
- Tokens *toks_new()
  {
- Tokens *tokens = NULL;
- ERR_MEM((tokens       = malloc(sizeof(Tokens)))  == NULL);
- ERR_MEM((tokens->toks = malloc(sizeof(char **))) == NULL);
- return tokens;
- }
- 
- 
- Tokens *read_assembly_program(const char *filepath)
+ // Prepare men
+ static map *mne_opcode = NULL;
+ if (mne_opcode == NULL)
  {
- FILE *file = fopen(filepath, "rt");
- 
- ERR_FILE(file == NULL);
- ERR_FILE(fseek(file, 0, SEEK_END) == -1);
- 
- long bytes = ftell(file);
- rewind(file);
- 
- char buffer[bytes];	// Contains the whole assembly text
- ERR_FILE(fread(buffer, 1, bytes, file) != bytes);
- 
- buffer[bytes-1] = '\0'; // Without this we get an indecipherable line at the end... But y?
- 
- printf("%s\n", buffer);
- return tokenize(buffer, "\n");
- 
- //return to
- //toks_print(program); // DEBUG ONLY
- }
- 
- ///////////////////////////////////////////////////////////////  DATA PROCESSING
- 
- int32_t ass_data_processing_instr(tokens *toks)
- {
- 
- return 0;
- }
- 
- //////////////////////////////////////////////////////////  SINGLE DATA TRANSFER
- 
- int32_t ass_single_data_transfer_instr(tokens *toks)
- {
- 
- return 0;
- }
- 
- //////////////////////////////////////////////////////////////////////  MULTIPLY
- 
- int32_t ass_multiply_instr(tokens *toks)
- {
- 
- return 0;
- }
- 
- ////////////////////////////////////////////////////////////////////////  BRANCH
- 
- int32_t ass_branch_instr(tokens *toks)
- {
- 
- return 0;
- }
- 
- ///////////////////////////////////////////////////////////////////////  SPECIAL
- 
- int32_t ass_special_instr(tokens *toks)
- {
- 
- return 0;
- }
- 
- ////////////////////////////////////////////////////////////////////////////////
- static ass_fun ass_functions[] =
- {
- &ass_data_processing_instr,
- &ass_single_data_transfer_instr,
- &ass_multiply_instr,
- &ass_branch_instr,
- &ass_special_instr
- };
- 
- static char *mnemonics[] =
- {
- "add",
- "sub",
- "rsb",
- "and",
- "eor",
- "orr",
- "mov",
- "tst",
- "teq",
- "cmp",
- "mul",
- "mla",
- "ldr",
- "str",
- "beq",
- "bne",
- "bge",
- "blt",
- "bgt",
- "ble",
- "b",
- "lsl",
- "andeq"
- };
- char *mnemonics[] =
- {
- "add",
- "sub",
- "rsb",
- "and",
- "eor",
- "orr",
- "mov",
- "tst",
- "teq",
- "cmp",
- "mul",
- "mla",
- "ldr",
- "str",
- "beq",
- "bne",
- "bge",
- "blt",
- "bgt",
- "ble",
- "b",
- "lsl",
- "andeq"
- };
- 
- for (int i = 0; i < 23; i++)
- {
- printf("int32_t %s_instr(char **toks, map *symtbl)  /////////////////  %s INSTRUCTION\n{\n\treturn %i;\n}\n\n", mnemonics[i], mnemonics[i], i);
- }
- 
- static map *mnemonic_to_opcode()
- {
- map *m = map_new(&map_cmp_str);
- map_put(m, "and", heap_int(0));
- map_put(m, "eor", heap_int(1));
- map_put(m, "sub", heap_int(2));
- map_put(m, "rsb", heap_int(3));
- map_put(m, "add", heap_int(4));
- map_put(m, "orr", heap_int(12));
- map_put(m, "mov", heap_int(13));
- map_put(m, "tst", heap_int(8));
- map_put(m, "teq", heap_int(9));
- map_put(m, "cmp", heap_int(10));
- return m;
+ mne_opcode = map_new(&map_cmp_str);
+ map_put(mne_opcode, "and", heap_int(AND));
+ map_put(mne_opcode, "eor", heap_int(EOR));
+ map_put(mne_opcode, "sub", heap_int(SUB));
+ map_put(mne_opcode, "rsb", heap_int(RSB));
+ map_put(mne_opcode, "add", heap_int(ADD));
+ map_put(mne_opcode, "tst", heap_int(TST));
+ map_put(mne_opcode, "teq", heap_int(TEQ));
+ map_put(mne_opcode, "cmp", heap_int(CMP));
+ map_put(mne_opcode, "orr", heap_int(ORR));
+ map_put(mne_opcode, "mov", heap_int(MOV));
  }*/
-

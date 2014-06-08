@@ -3,9 +3,15 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void *mem_chk(void *, const char *);
+#define HEAP_PRIM(type, value)\
+	do\
+	{\
+		#type *pt = malloc(sizeof(#type));\
+		*pt = value;\
+		return pt;\
+	} while(0)
 
-void file_chk(int, const char *);
+int *heap_int(int);
 
 ////////////////////////////////////////////////////////////////////////////////
 

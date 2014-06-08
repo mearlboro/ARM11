@@ -8,8 +8,8 @@
 
 static tokens *toks_new()
 {
-	tokens *toks = mem_chk(malloc(sizeof(tokens)), "toks_new");
-	toks->toks   = mem_chk(malloc(0),              "toks_new");
+	tokens *toks = malloc(sizeof(tokens));
+	toks->toks   = malloc(0);
 	return toks;
 }
 
