@@ -52,7 +52,7 @@ struct
 	char *mnemonic;
 }
 cond_array[] = { cond_tostring(f_pair) };
-
+       
 
 //// GET ENUM FROM STRING FUNCTION ////////////////////////////////////////////
 
@@ -317,8 +317,15 @@ int32_t assemble_sdti_expr(tokens *line, ass_prog *p, char *address)
 	
 	// We now need to generate ldr Rd, [PC, #offset]
 	line->toks[2] = "[PC";
-	line->toks[3] = "#offset]"; offset = 0; // TODO IMPLEMENT THIS PLEASE
 	
+	/*line->toks[3] = "#offset]"; offset = 0;*/ 
+	
+	char *offset_string; 
+	//itoa(offset, offset_string, 10); // int to string function is not std :(
+	offset_string = itoa(offset); // own itoa in utils.c
+	strcpy(line->toks[3], "#");  // line->toks[3] = "#";
+	strcat(line->toks[3], offset_string); // line->toks[3] = "#offset"
+	strcat(line->toks[3], "]"); // line->toks[3] = "#offset]"
 	// Call the assembly instruction
 	return assemble_sdti(line, p);
 }

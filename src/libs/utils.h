@@ -1,3 +1,4 @@
+#include<stdint.h>
 #ifndef UTILS_H
 #define UTILS_H
 
@@ -12,6 +13,7 @@
 	} while(0)
 
 uint16_t *heap_uint16_t(uint16_t);
+char *itoa(int);
 
 ////////////////////////////////////////////////////////////////////////////////
 
