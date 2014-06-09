@@ -323,7 +323,8 @@ int32_t assemble_sdti_expr(tokens *line, ass_prog *p, char *address)
 	char *offset_string; 
 	//itoa(offset, offset_string, 10); // int to string function is not std :(
 	offset_string = itoa(offset); // own itoa in utils.c
-	strcpy(line->toks[3], "#");  // line->toks[3] = "#";
+	line->toks[3] = NULL;
+	strcat(line->toks[3], "#");  // line->toks[3] = "#";
 	strcat(line->toks[3], offset_string); // line->toks[3] = "#offset"
 	strcat(line->toks[3], "]"); // line->toks[3] = "#offset]"
 	// Call the assembly instruction
