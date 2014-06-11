@@ -7,6 +7,7 @@ typedef struct tokens
 {
 	char **toks;
 	unsigned int tokn;
+	char *line;
 } tokens;
 
 typedef void (*toks_fun)(char *);
@@ -24,6 +25,8 @@ void toks_print(tokens *);
 tokens *tokenize(char *, const char *);
 
 void toks_iter(tokens *, toks_fun);
+
+char toks_endc(tokens *);
 
 //  tokens **tokenize_r(tokens *, const char *);
 

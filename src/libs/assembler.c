@@ -48,12 +48,12 @@ uint16_t ass_prog_append(ass_prog *p, int32_t word)
 	p->line_tot++;
 	realloc_instrs(p);
 
-	uint16_t address = p->line_tot * sizeof(int32_t);
+	uint16_t address = (p->line_tot-1) * sizeof(int32_t); // Address starts at 0
 	bin_instr *instr = malloc(sizeof(bin_instr));
 	instr->bin_word  = word;
 	instr->word_addr = address;
 
-	p->instrs[p->line_tot] = instr;
+	p->instrs[p->line_tot-1] = instr;
 
 	return address;
 }
@@ -69,6 +69,14 @@ static void ass_prog_write(ass_prog *p, int32_t word)
 }
 
 ///////////////////////////////////////////////////////  Assemble An ARM Program
+
+/* 
+ * Interestingly, beq02.s has two empty lines at the end of the file. This
+ * caused the last line to be tokenized into a single "" token which obviously
+ * caused errors.
+ */
+#define IS_LINE_EMPTY(toks) ((toks->tokn == 1) && (toks->toks[0] == '\0'))
+
 
 int32_t *assemble(tokens *lines, ass_func ass_func, const char *delim)
 {
@@ -97,6 +105,7 @@ int32_t *assemble(tokens *lines, ass_func ass_func, const char *delim)
   // Initialize Assembly Program
 	int line_tot = lines->tokn - labelc;
 	ass_prog *p  = malloc(sizeof(ass_prog));
+	p->instrs    = malloc(0); // Why LOL Well I know why
 	p->line_tot  = line_tot;
 	p->instrs    = realloc_instrs(p);
 	p->sym_tbl   = symtbl;
@@ -106,20 +115,23 @@ int32_t *assemble(tokens *lines, ass_func ass_func, const char *delim)
 	for (int i = 0; i < lines->tokn; i++)
 	{
 		tokens *line = tokenize(strdup(lines->toks[i]), delim);
+		
+		//if (IS_LINE_EMPTY(line)) continue;
+		
 		char   *mnem = line->toks[0];
 		
 		if (strstr(mnem, ":")) continue; // Label encountered
 
 		int32_t word = ass_func(line, p);
 		
-		// TODO THIS IS WHERE THE NEWLY COMPUTED WORD IS PRINTED TOGETHER WITH
-		// ITS ADDRESS. USE !xxd -b -c4" AND THE RESULT SHOULD BE EQUAL
-		printf("%08x : ", p->curr_addr); print_bits_BE(word);
+		//printf("%08x : ", p->curr_addr); print_bits_BE(word);
 		
 		ass_prog_write(p, word);
 		
 		toks_free(line);
 	}
+	
+	ass_prog_print(p);
 	
 	// Clean Up And Return
 	int32_t *binary_code = ass_prog_gen(p);
@@ -128,3 +140,13 @@ int32_t *assemble(tokens *lines, ass_func ass_func, const char *delim)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
+void ass_prog_print(ass_prog *p)
+{
+	for (int i = 0; i < p->line_tot; i++)
+	{
+		printf("%08x : ", p->instrs[i]->word_addr); print_bits_BE(p->instrs[i]->bin_word);
+	}
+}
+
+

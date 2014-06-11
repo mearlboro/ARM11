@@ -31,6 +31,9 @@ uint16_t ass_prog_append(ass_prog *, int32_t);
 int32_t *assemble(tokens *, ass_func, const char *);
 
 
+void ass_prog_print(ass_prog *);
+
+
 #endif
 
 

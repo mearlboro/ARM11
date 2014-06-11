@@ -41,8 +41,12 @@ tokens *tokenize(char *str, const char *delim)
 	int     tokn = 0;
 	size_t  tokz = 0;
 	
+	toks->line = strdup(str);
+	
 	while ((tok = strsep(&str, delim)) != NULL)
 	{
+		if (*tok == '\0') continue; // Discard empty tokens
+		
 		tokz               = sizeof(char *) * (tokn + 1);
 		toks->toks         = realloc(toks->toks, tokz);
 		toks->toks[tokn++] = strdup(tok);
@@ -52,6 +56,7 @@ tokens *tokenize(char *str, const char *delim)
 	return toks;
 }
 
+
 ///////////////////////////////////////////////////////////////////////  ITERATE
 
 void toks_iter(tokens *toks, toks_fun fun)
@@ -60,6 +65,13 @@ void toks_iter(tokens *toks, toks_fun fun)
 	{
 		fun(toks->toks[i]);
 	}
+}
+
+/////////////////////////////////////////////////////////////////////  LAST CHAR
+
+char toks_endc(tokens *toks)
+{
+	return toks->toks[toks->tokn-1][strlen(toks->toks[toks->tokn-1])-1];
 }
 
 //////////////////////////////////////////////////////////////////////  TOKENIZE
