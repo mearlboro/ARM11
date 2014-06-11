@@ -1,3 +1,4 @@
+#define _GNU_SOURCE 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -429,7 +430,7 @@ int32_t assemble_andeq(tokens *line, ass_prog *p)
 
 int32_t assemble_lsl(tokens *line, ass_prog *p)
 {
-	// (TODO NUMBER #2) : Implement this function
+	// TODO 2 : Implement this
 
 	return -1;
 }
