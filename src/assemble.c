@@ -67,8 +67,25 @@ int as_shifted_register(tokens *line, idx Operand2)
 int as_immediate_value(char *tok)
 {
 	int constant = PARSE_EXPR(tok);
+	int no_rot = 0;
+	// while the bits from 8 to 32 are not all 0, rotate the constant
+	// no of rotations is always even as in the specs
+	while (bits_get(constant,8,31) != 0 && no_rot < 32)
+	{
+	  constant = rotate_right(constant,2);
+	  no_rot +=2;
+	}
+	if (no_rot == 32)
+	{
+	  perror("Cannot convert numeric constant into 12-bit");
+	  exit(EXIT_FAILURE);
+	}
 	
-	// (TODO NUMBER #1) : Compute 12-bit immediate value for constant
+	// Now we have
+	// Rotate = no_rot / 2 ( bits 8 to 11 in Operand2)
+	// Imm    = constant ( as an 8 bit value) (bits 0 to 7 in Operand2)
+	no_rot /= 2;
+	constant = (no_rot << 8) | constant; // constructing Operand2 (Rotate + Imm)
 	
 	return constant;
 }
