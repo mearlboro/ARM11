@@ -47,16 +47,46 @@ typedef int idx;
  *
  * Operand2 will be of the form Rm{,<shift>}, where the <shift> part is optional
  * <Operand2> argument is the index of Operand2 in tokens. Therefore if
- * <line->tokn> < (Operand2+1) then we have a shifted register, otherwise
+ * <line->tokn> > (Operand2+1) then we have a shifted register, otherwise
  * parsed operand2 will only have Rm and then zeros.
  */
 int as_shifted_register(tokens *line, idx Operand2)
 {
+  static map *shift_code = NULL;
+	if (shift_code == NULL)
+	{
+		map *m = map_new(&map_cmp_str);
+		map_put(m, "asr", heap_int(2));
+		map_put(m, "asl", heap_int(0));
+		map_put(m, "lsl", heap_int(0));
+		map_put(m, "lsr", heap_int(1));
+		map_put(m, "ror", heap_int(3));
+		shift_code = m;
+	}
+	
 	if (line->tokn <= Operand2+1)
 	{
 		return PARSE_REG(Operand2);
 	}
-	return -1; // Optional, not supported for now
+	
+	int shift = 0;
+	int shift_type = *(int *) map_get(shift_code, line->toks[4]);
+	if(IS_EXPRESSION(line->toks[5])) // case <shift> = <shiftname> <#expression>.
+	{
+	  shift = shift_type << 1;
+	  int shift_value = PARSE_EXPR(line->toks[5]);
+	  shift = (shift_value << 3) | shift;  
+	}
+	else // case <shift> = <shiftname> <reg>
+	{
+	  shift = (shift_type << 1) | 1;
+	  int shift_reg = PARSE_REG(5);
+	  shift = (shift_reg << 4) | shift;
+	}
+	
+	int Rn = PARSE_REG(2); 
+	
+	return (shift << 4) | Rn; // final 
 }
 
 /*
