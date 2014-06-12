@@ -124,7 +124,7 @@ ass_prog *assemble(tokens *lines, ass_func ass_func, const char *delim)
 
 		int32_t word = ass_func(line, p);
 		
-		//printf("%08x : ", p->curr_addr); print_bits_BE(word);
+	 //printf("%08x : ", p->curr_addr); print_bits_BE(word);
 		
 		ass_prog_write(p, word);
 		
@@ -146,7 +146,8 @@ void ass_prog_print(ass_prog *p)
 {
 	for (int i = 0; i < p->line_tot; i++)
 	{
-		printf("%08x : ", p->instrs[i]->word_addr); print_bits_BE(p->instrs[i]->bin_word);
+		printf("%08x : ", p->instrs[i]->word_addr);
+	  print_bits_BE(p->instrs[i]->bin_word);
 	}
 }
 

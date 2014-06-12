@@ -70,23 +70,24 @@ int as_shifted_register(tokens *line, idx Operand2)
 	}
 	
 	int shift = 0;
-	int shift_type = *(int *) map_get(shift_code, line->toks[4]);
-	if(IS_EXPRESSION(line->toks[5])) // case <shift> = <shiftname> <#expression>.
+	int shift_type = *(int *) map_get(shift_code, line->toks[3]);
+	if(IS_EXPRESSION(line->toks[4])) // case <shift> = <shiftname> <#expression>.
 	{
 	  shift = shift_type << 1;
-	  int shift_value = PARSE_EXPR(line->toks[5]);
+	  int shift_value = PARSE_EXPR(line->toks[4]);
 	  shift = (shift_value << 3) | shift;  
 	}
 	else // case <shift> = <shiftname> <reg>
 	{
 	  shift = (shift_type << 1) | 1;
-	  int shift_reg = PARSE_REG(5);
+	  int shift_reg = PARSE_REG(4);
 	  shift = (shift_reg << 4) | shift;
 	}
 	
 	int Rn = PARSE_REG(2); 
 	
 	return (shift << 4) | Rn; // final 
+	return -1;
 }
 
 /*
@@ -579,10 +580,10 @@ void write_object_code(ass_prog *p, const char *path)
 int main(int argc, char **argv)
 {
 	/*************** FOR TESTING PURPOSES, REAL MAIN IS BELOW *******************/
-	char *path = "/Users/Zeme/ARM11/arm11_1314_testsuite/test_cases/ldr16.s";
+	char *path = argv[1];
 	tokens *lines = read_assembly_file(path); toks_print(lines);
 	ass_prog *p = assemble(lines, &assembler_function, " ,");
-	write_object_code(p, "tmp.out");
+	write_object_code(p, "out");
 	ass_prog_free(p);
 	/****************************************************************************/
 	
