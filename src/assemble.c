@@ -1,4 +1,4 @@
-#define _GNU_SOURCE 
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -327,6 +327,7 @@ int32_t assemble_sdti_expr(tokens *line, ass_prog *p)
 	if (address <= threshold)
 	{
 		addr_tok[0] = '#'; // Substitute '=' with '#'
+		line->toks[0] = "mov";
 		return assemble_mov(line, p);
 	}
 	
@@ -578,14 +579,14 @@ void write_object_code(ass_prog *p, const char *path)
 int main(int argc, char **argv)
 {
 	/*************** FOR TESTING PURPOSES, REAL MAIN IS BELOW *******************/
-	//char *path = "test_cases/gpio_1.s";
-	//tokens *lines = read_assembly_file(path); toks_print(lines);
-	//ass_prog *p = assemble(lines, &assembler_function, " ,");
-	//write_object_code(p, "tmp.out");
-	//ass_prog_free(p);
+	char *path = "/Users/Zeme/ARM11/arm11_1314_testsuite/test_cases/ldr16.s";
+	tokens *lines = read_assembly_file(path); toks_print(lines);
+	ass_prog *p = assemble(lines, &assembler_function, " ,");
+	write_object_code(p, "tmp.out");
+	ass_prog_free(p);
 	/****************************************************************************/
 	
-	
+	/*
 	if (argc < 3)
 	{
 		fprintf(stderr, "%s\n", "Please provide input and output files!");
@@ -602,8 +603,8 @@ int main(int argc, char **argv)
 	write_object_code(p, "out");
 	
 	ass_prog_free(p);
-	
-	
+	*/
+		
 	return EXIT_SUCCESS;
 }
 
