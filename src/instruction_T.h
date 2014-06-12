@@ -74,7 +74,7 @@ typedef struct ShiftReg
 } ShiftReg;
 
 
-////  2.1.2 OPCODES DEFINITION /////////////////////////////////////////////////
+////  2.2 OPCODES DEFINITION ///////////////////////////////////////////////////
 
 typedef enum 
 {
@@ -88,9 +88,9 @@ typedef enum
 	CMP = 10,
 	ORR = 12,
 	MOV = 13,
-} DataProcessingOpcodes;
+} DataProcessingOpcode;
 
-////  2.2 CONDITION CODE DEFINITION  //////////////////////////////////////////
+////  2.3 CONDITION CODE DEFINITION  //////////////////////////////////////////
 
 typedef enum 
 {

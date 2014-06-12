@@ -52,7 +52,7 @@
                               (MEM_BYTE_READ(i+2) & 0xFF) <<  8 | \
                               (MEM_BYTE_READ(i+3) & 0xFF) <<  0 )
 
-#define MEM_BYTE_WRITE(i, b)  (ARM->memory[i] = (b))                      
+#define MEM_BYTE_WRITE(i, b)  (ARM->memory[(i)] = (b))                      
 
 #define MEM_WORD_WRITE(i, w) { MEM_BYTE_WRITE(i+0, ((w) >>  0) & 0xFF); \
                                MEM_BYTE_WRITE(i+1, ((w) >>  8) & 0xFF); \
@@ -75,20 +75,22 @@
  
 ////  3.5 FUNCTION PROTOTYPES  /////////////////////////////////////////////////
 
-void read_ARM_program(const char *filename);
-void print_ARM_state();
+void read_ARM_program(const char *);
+void print_ARM_state(void);
 
-void emulate();
-int check_condition_code(int32_t word);
-void decode_instruction(int32_t word);
-void exe_single_data_transfer(int32_t word);
-void exe_data_processing(int32_t word);
-void exe_multiply(int32_t word);
-void exe_branch(int32_t word);
+void emulate(void);
+int check_condition_code(int32_t);
+void decode_instruction(int32_t);
+void exe_single_data_transfer(int32_t);
+void exe_data_processing(int32_t);
+void exe_multiply(int32_t);
+void exe_branch(int32_t);
 
-int32_t as_shifted_reg(int32_t value, int8_t S);
-int32_t as_immediate_reg(int value);
+int32_t as_shifted_reg(int32_t, int8_t);
+int32_t as_immediate_reg(int);
 
+int is_GPIO_address(int);
+void print_GPIO_address(int);
 
 ////////////////////////////////////////////////////////////////////////////////
 ////  4. MAIN  /////////////////////////////////////////////////////////////////
@@ -159,6 +161,7 @@ void read_ARM_program(const char *filename)
 
 void print_ARM_state()
 {
+
 	// Print contents of registers
 	printf("Registers:\n");
 	for (int i = 0; i < REGISTER_COUNT - 4; i++)
@@ -247,15 +250,18 @@ int check_condition_code(int32_t word)
 		case NE : return !CPSR_GET(ZERO);
 		case GE : return  CPSR_GET(NEGATIVE) == CPSR_GET(OVERFLOW);
 		case LT : return  CPSR_GET(NEGATIVE) != CPSR_GET(OVERFLOW);
-		case GT : return !CPSR_GET(ZERO)&& (CPSR_GET(NEGATIVE)==CPSR_GET(OVERFLOW));
-		case LE : return  CPSR_GET(ZERO)|| (CPSR_GET(NEGATIVE)!=CPSR_GET(OVERFLOW));
+		case GT : return !CPSR_GET(ZERO) && 
+										 (CPSR_GET(NEGATIVE) == CPSR_GET(OVERFLOW));
+		case LE : return  CPSR_GET(ZERO) || 
+										 (CPSR_GET(NEGATIVE) != CPSR_GET(OVERFLOW));
 		case AL : return 1;
 		default : return 0;
 	}
 }
 
-
+///////////////////////////////////////////////////////////////////////////////
 ////  5.4 IMPLEMENT INSTRUCTIONS  /////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 ////  5.4.1 SINGLE DATA TRANSFER  /////////////////////////////////////////////
 
@@ -270,31 +276,41 @@ void exe_single_data_transfer(int32_t word)
 	int P      = instr->P;
 	int U      = instr->U;
 	int L      = instr->L;
-	
+
 	int PostIndexing = IS_CLEAR(P);
 	int PreIndexing  = !PostIndexing;
 	
 	int address = ARM->registers[Rn];
 	int value   = ARM->registers[Rd];
 	
-	Offset = IS_CLEAR(I) ? as_immediate_reg(Offset) : as_shifted_reg(Offset, 0);
+	Offset = IS_CLEAR(I) ? as_immediate_reg(Offset) 
+											 : as_shifted_reg(Offset, 0);
 	
-	if (PreIndexing) address += IS_SET(U) ? Offset : -Offset;
-	
-	if (address >= MEMORY_CAPACITY || address < 0) goto moob;
+	if (PreIndexing) address += (IS_SET(U) ? Offset : -Offset);
+
+	if (address < 0 || address >= MEMORY_CAPACITY) goto moob;
+	if (is_GPIO_address(address))                  goto gpio;
 
 	if (IS_SET(L)) REG_WRITE(Rd, MEM_WORD_READ(address));
 	else           MEM_WORD_WRITE(address, value);
 	
 	if (PostIndexing) REG_WRITE(Rn, address += (IS_SET(U) ? Offset : -Offset));
-	
-	if (address >= MEMORY_CAPACITY || address < 0) goto moob;
-	
+
+	if (address < 0 || address >= MEMORY_CAPACITY) goto moob;
+	if (is_GPIO_address(address))                  goto gpio;
+
+
 	return;
 
 	moob:
-		printf("Error: Out of bounds memory access at address 0x%08x\n", address);
-		return;
+			if(!is_GPIO_address(address)) 
+			{		
+				printf("Error: Out of bounds memory access at address 0x%08x\n", address);
+				return; 
+			}
+	
+	gpio: 
+			print_GPIO_address(address);
 }
 
 
@@ -304,18 +320,17 @@ void exe_data_processing(int32_t word)
 {
 	DataProcessingInstr *inst = (DataProcessingInstr *) &word;
 	
-	int I        = inst->I;             // 25
-	int OpCode   = inst->OpCode;        // 24-21
-	int S        = inst->S;
+	int I        = inst->I;        // 25
+	int OpCode   = inst->OpCode;   // 24-21
+	int S        = inst->S;        
 	int Rn       = inst->Rn;
 	int Rd       = inst->Rd;
-	int Operand2 = inst->Operand2;      // 11-0
+	int Operand2 = inst->Operand2; // 11-0
 	
 	int Operand1 = ARM->registers[Rn];
 
-	Operand2 = IS_CLEAR(I) ? as_shifted_reg(Operand2, S) 
-	                       : as_immediate_reg(Operand2);
-	
+	Operand2     = IS_CLEAR(I) ? as_shifted_reg(Operand2, S) 
+	           		           : as_immediate_reg(Operand2);
 	int result   = 0;
 
 	// calculate result by opcode
@@ -381,6 +396,7 @@ void exe_multiply(int32_t word)
 	CPSR_PUT(ZERO, (result == 0));           // Z is set iff result is 0
 }
 
+
 ////  5.4.4 BRANCH INSTRUCTION  ////////////////////////////////////////////////
 
 void exe_branch(int32_t word)
@@ -395,6 +411,7 @@ void exe_branch(int32_t word)
 	ARM->pipeline->fetched = MEM_WORD_READ(REG_READ(PC));
 	INCREMENT_PC(4);
 }
+
 
 ////  5.4.5 SHIFTING ///////////////////////////////////////////////////////////
 
@@ -413,36 +430,36 @@ int32_t as_shifted_reg(int32_t value, int8_t S)
 {
 	ShiftReg *sreg = (ShiftReg *) &value;
 	
-	int Flag   = sreg->Flag;
-	int Type   = sreg->Type;
-	int Rm     = sreg->Rm;
-	int amount = sreg->Amount;
-	int reg    = REG_READ(Rm);
-	int carry  = 0;
+	int Flag     = sreg->Flag;
+	int Type     = sreg->Type;
+	int Rm       = sreg->Rm;
+	int amount   = sreg->Amount;
+	uint32_t reg = REG_READ(Rm);
+	int carry    = 0;
 	
 	if (IS_SET(Flag))
 	{
-		int Rs = REG_READ(amount);
+		int Rs = REG_READ(bits_get(amount, 1, 4));
 		amount = bits_get(Rs, 0, 8);
 	}
 	
 	switch (Type)
 	{
-		case 0 : // Logical shit left
+		case 0 : // lsl - Logical shift left
 		{
 			value = reg << amount;
 			if (amount != 0) carry = BIT_GET(reg, 31 - amount + 1);
 			if (IS_SET(S))   CPSR_PUT(CARRY, carry);
 			break;
 		}
-		case 1 : // Logical right shift
+		case 1 : // lsr - Logical shift right
 		{
 			value = reg >> amount;
 			if (amount != 0) carry = BIT_GET(reg, amount - 1);
 			if (IS_SET(S))   CPSR_PUT(CARRY, carry);
 			break;
 		}
-		case 2 : // Arithmetic right shift
+		case 2 : // asr - Arithmetic shift right
 		{
 			value = reg >> amount;
 			if (amount != 0) carry = BIT_GET(reg, amount - 1);
@@ -451,7 +468,7 @@ int32_t as_shifted_reg(int32_t value, int8_t S)
 			for (int j = 0; j < amount; j++) BIT_PUT(value, 31 - j, bit);
 			break;
 		}
-		case 3  : // Rotate right
+		case 3  : // ror - Rotate right
 		{
 			value = rotate_right(reg, amount); 
 			break; 
@@ -460,5 +477,51 @@ int32_t as_shifted_reg(int32_t value, int8_t S)
 	}
 	
 	return value;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+////  5.5 GPIO ////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+int pins[32];
+
+int is_GPIO_address(int address) {
+
+	switch(address) 
+	{
+		case 0x20200000:
+		case 0x20200004:
+		case 0x20200008: 
+		case 0x20200028:
+		case 0x2020001c: return 1;
+		default:         return 0;
+	}
+} 
+
+void print_GPIO_address(int address) 
+{
+	int group_of_pins = 0;
+	int pin_on        = 0;
+	int pin_off       = 0; 
+	
+	switch(address) 
+	{
+		case 0x20200000: group_of_pins =  0; goto pin_accessed;
+		case 0x20200004: group_of_pins = 10; goto pin_accessed;
+		case 0x20200008: group_of_pins = 20; goto pin_accessed;
+		case 0x20200028: pin_off       =  1; break;
+		case 0x2020001c: pin_on        =  1; break;
+		default:         return;
+	}
+
+	if (pin_on)  printf("PIN ON\n");
+	if (pin_off) printf("PIN OFF\n");
+
+	return; 
+
+	pin_accessed:
+		printf("One GPIO pin from %d to %d has been accessed\n", 
+						group_of_pins, group_of_pins + 9);
 }
 
