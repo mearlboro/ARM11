@@ -432,9 +432,14 @@ int32_t assemble_andeq(tokens *line, ass_prog *p)
 
 int32_t assemble_lsl(tokens *line, ass_prog *p)
 {
-	// TODO 2 : Implement this
+	//transform lsl Rn, <#expression> to mov Rn,Rn, lsl <#expression>.
+	char *newline = NULL;
+	asprintf(&newline, "mov %s,%s, lsl %s", line->toks[1],
+	                                        line->toks[1],
+	                                        line->toks[2]);
+	tokens *newtoks = tokenize(newline, " ,");
 
-	return -1;
+	return assemble_mov(newtoks, p);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
