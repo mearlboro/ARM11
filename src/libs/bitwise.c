@@ -57,12 +57,22 @@ int32_t rotate_right(int32_t i, int n)
   {
     int last_bit = BIT_GET(i, 0);
     i >>= 1;
-    BIT_PUT(i, 31, last_bit); // i = fucck
+    BIT_PUT(i, 31, last_bit); 
   }
   return i;
 }
 
 
+int32_t rotate_left(int32_t i, int n)
+{
+	for (int j = 0; j < n; j++)
+	{
+		int last_bit = BIT_GET(i, 31);
+		i <<= 1;
+		BIT_PUT(i, 0, last_bit);
+	}
+	return i;
+}
 
 
 

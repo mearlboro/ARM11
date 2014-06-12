@@ -12,7 +12,7 @@
 
 //////////////////////////////////////////////////////  Free An Assembly Program
 
-static void ass_prog_free(ass_prog *p)
+void ass_prog_free(ass_prog *p)
 {
 	int i = p->line_tot;
 	while (i--) free(p->instrs[i]);
@@ -30,7 +30,7 @@ static bin_instr **realloc_instrs(ass_prog *p)
 
 //////////////////////////////////////////////////////  Generate ARM-Binary Code
 
-static int32_t *ass_prog_gen(ass_prog *p)
+int32_t *ass_prog_gen(ass_prog *p)
 {
 	int32_t *words = malloc(sizeof(int32_t) * p->line_tot);
 	for (int i = 0; i < p->line_tot; i++)
@@ -78,7 +78,7 @@ static void ass_prog_write(ass_prog *p, int32_t word)
 #define IS_LINE_EMPTY(toks) ((toks->tokn == 1) && (toks->toks[0] == '\0'))
 
 
-int32_t *assemble(tokens *lines, ass_func ass_func, const char *delim)
+ass_prog *assemble(tokens *lines, ass_func ass_func, const char *delim)
 {
   // Pass #1
 	map      *symtbl  = map_new(&map_cmp_str);
@@ -134,9 +134,10 @@ int32_t *assemble(tokens *lines, ass_func ass_func, const char *delim)
 	ass_prog_print(p);
 	
 	// Clean Up And Return
-	int32_t *binary_code = ass_prog_gen(p);
-	ass_prog_free(p);
-	return binary_code;
+	//int32_t *binary_code = ass_prog_gen(p);
+	//ass_prog_free(p);
+	//return binary_code;
+	return p;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

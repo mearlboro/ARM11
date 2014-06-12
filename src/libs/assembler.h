@@ -24,11 +24,13 @@ typedef struct ass_prog   // Assembly Program
 
 typedef int32_t (*ass_func)(tokens *, ass_prog *);
 
+int32_t *ass_prog_gen(ass_prog *);
 
 uint16_t ass_prog_append(ass_prog *, int32_t);
 
+void ass_prog_free(ass_prog *);
 
-int32_t *assemble(tokens *, ass_func, const char *);
+ass_prog *assemble(tokens *, ass_func, const char *);
 
 
 void ass_prog_print(ass_prog *);

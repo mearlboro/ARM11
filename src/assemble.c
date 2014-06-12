@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <assert.h>
 #include "libs/utils.h"
 #include "libs/tokens.h"
 #include "libs/map.h"
@@ -66,14 +67,15 @@ int as_shifted_register(tokens *line, idx Operand2)
  * hexadecimal format (0x prefix for hexadecimal).
  */
 int as_immediate_value(char *tok)
-{
+{		
+	
 	int constant = PARSE_EXPR(tok);
 	int no_rot = 0;
 	// while the bits from 8 to 32 are not all 0, rotate the constant
 	// no of rotations is always even as in the specs
 	while (bits_get(constant,8,31) != 0 && no_rot < 32)
 	{
-	  constant = rotate_right(constant,2);
+	  constant = rotate_left(constant,2);
 	  no_rot +=2;
 	}
 	if (no_rot == 32)
@@ -519,9 +521,16 @@ tokens *read_assembly_file(const char *path)
  * Given binary object code for an ARM machine, write the program onto the file
  * specified by the file path provided.
  */
-void write_object_code(int32_t *code, const char *path)
+void write_object_code(ass_prog *p, const char *path)
 {
-	// (TODO NUMBER #3) : Write <code> on the file specified by <path>
+	FILE *file;
+	file = fopen(path, "wb");
+	
+	int32_t *code = ass_prog_gen(p);
+	
+	size_t bytes = p->line_tot * sizeof(int32_t);
+	
+	assert(fwrite(code, 1, bytes, file) == bytes);
 
 	// We no longer need code
 	free(code);
@@ -534,12 +543,14 @@ void write_object_code(int32_t *code, const char *path)
 int main(int argc, char **argv)
 {
 	/*************** FOR TESTING PURPOSES, REAL MAIN IS BELOW *******************/
-	char *path = "/Users/Zeme/ARM11/arm11_1314_testsuite/test_cases/gpio_1.s";
-	tokens *lines = read_assembly_file(path); toks_print(lines);
-	assemble(lines, &assembler_function, " ,");
+	//char *path = "test_cases/gpio_1.s";
+	//tokens *lines = read_assembly_file(path); toks_print(lines);
+	//ass_prog *p = assemble(lines, &assembler_function, " ,");
+	//write_object_code(p, "tmp.out");
+	//ass_prog_free(p);
 	/****************************************************************************/
 	
-	/*
+	
 	if (argc < 3)
 	{
 		fprintf(stderr, "%s\n", "Please provide input and output files!");
@@ -550,11 +561,13 @@ int main(int argc, char **argv)
 	tokens *lines = read_assembly_file(argv[1]);
 	
 	// Assemble the lines using the assembler_function
-	int32_t *code = assemble(lines, &assembler_function, " ,");
+	ass_prog *p = assemble(lines, &assembler_function, " ,");
 	
 	// Write the words to the output file
-	write_object_code(code, argv[2]);
-	*/
+	write_object_code(p, "out");
+	
+	ass_prog_free(p);
+	
 	
 	return EXIT_SUCCESS;
 }
@@ -563,6 +576,9 @@ int main(int argc, char **argv)
 
 ////////////////////////////////////////////////////////////////////////////////
 /*
+
+printf("sizeof(code):[%lu] | sizeof(int32_t *):[%lu] | sizeof(code[0]):[%lu]", sizeof(code), sizeof(int32_t *), sizeof(code[0]));
+	
  {
  // Prepare men
  static map *mne_opcode = NULL;
