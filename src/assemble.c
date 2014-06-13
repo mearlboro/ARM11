@@ -639,7 +639,7 @@ void write_object_code(ass_prog *p, const char *path)
 ////    MAIN    ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-#define FILE_COUNT 64
+/*#define FILE_COUNT 64
 static char *why_is_testserver_not_working_on_my_mac[] =
 {
 	"add01", "add02", "add03", "add04" , "and01"    , "and02" , "b01"   , "beq01"         , "beq02",
@@ -688,7 +688,7 @@ static void testme(char *path)
 	
 }
 
-
+*/
 int main(int argc, char **argv)
 {
 	/*************** FOR TESTING PURPOSES, REAL MAIN IS BELOW *******************/
@@ -708,17 +708,20 @@ int main(int argc, char **argv)
 //	map_free(assemblers, 0);
 //	map_free(code_map, MAP_FREE_VAL);
 	/****************************************************************************/
-	for (int i = 0; i < FILE_COUNT; i++)
+	/*for (int i = 0; i < FILE_COUNT; i++)
 	{
 		testme(why_is_testserver_not_working_on_my_mac[i]);
-	}
-	/*
+	}*/
+	
 	if (argc < 3)
 	{
 		fprintf(stderr, "%s\n", "Please provide input and output files!");
 		exit(EXIT_FAILURE);
 	}
 	
+	setup_assemblers();
+  setup_code_map();
+
 	// Obtain lines of assembly code as tokens
 	tokens *lines = read_assembly_file(argv[1]);
 	
@@ -728,8 +731,10 @@ int main(int argc, char **argv)
 	// Write the words to the output file
 	write_object_code(p, "out");
 	
-	ass_prog_free(p);
-	*/
+	toks_free(lines);
+  ass_prog_free(p);
+  map_free(assemblers, 0);
+  map_free(code_map, MAP_FREE_VAL);
 		
 	return EXIT_SUCCESS;
 }

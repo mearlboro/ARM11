@@ -107,7 +107,7 @@ ARMState *ARM = NULL;
 
 ////  3.2 MAIN  ////////////////////////////////////////////////////////////////
 
-int main2(int argc, char **argv)
+int main(int argc, char **argv)
 {
 	// Make sure input file is provided
 	if (argc < 2) 
