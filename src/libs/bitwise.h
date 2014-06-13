@@ -2,8 +2,10 @@
 #define _BIT_WISE
 
 void    print_bits(int32_t i);
+void    print_bits_BE(int32_t i);
 int32_t bits_get(int32_t i, int n, int m);
 int32_t rotate_right(int32_t i, int n);
+int32_t rotate_left(int32_t i, int n);
 
 // Set/Clear/Get/Put the nth bit of integer i where 0 is rightmost bit
 

@@ -8,6 +8,12 @@
 ////  2. INSTRUCTION DEFINITIONS  //////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+typedef uint16_t ADDRESS;
+
+typedef int32_t WORD;
+
+#define WORD_SIZE 4
+
 ////  2.1.0 INSTRUCTION TYPES //////////////////////////////////////////////////
 
 typedef struct DataProcessingInstr
@@ -17,10 +23,11 @@ typedef struct DataProcessingInstr
 	unsigned int Rn       : 4;
 	unsigned int S        : 1;
 	unsigned int OpCode   : 4;
-	unsigned int I        : 1;
+	unsigned int _I       : 1;
 	unsigned int _00      : 2;
 	unsigned int Cond     : 4;
 } DataProcessingInstr;
+
 
 typedef struct MultiplyInstr
 {
@@ -35,6 +42,7 @@ typedef struct MultiplyInstr
 	unsigned int Cond    : 4;
 } MultiplyInstr;
 
+
 typedef struct SingleDataTransferInstr
 {
 	unsigned int Offset : 12;
@@ -44,10 +52,11 @@ typedef struct SingleDataTransferInstr
 	unsigned int _00    : 2;
 	unsigned int U      : 1;
 	unsigned int P      : 1;
-	unsigned int I      : 1;
+	unsigned int _I     : 1;
 	unsigned int _01    : 2;
 	unsigned int Cond   : 4;
 } SingleDataTransferInstr;
+
 
 typedef struct BranchInstr
 {
@@ -65,6 +74,7 @@ typedef struct ImmediateReg
 	unsigned int Rotate : 4;
 } ImmediateReg;
 
+
 typedef struct ShiftReg
 {
 	unsigned int Rm     : 4;
@@ -74,9 +84,9 @@ typedef struct ShiftReg
 } ShiftReg;
 
 
-////  2.2 OPCODES DEFINITION ///////////////////////////////////////////////////
+////  2.1.2 DATA PROCESSING OPCODES DEFINITION ////////////////////////////////
 
-typedef enum 
+typedef enum
 {
 	AND =  0,
 	EOR =  1,
@@ -87,12 +97,13 @@ typedef enum
 	TEQ =  9,
 	CMP = 10,
 	ORR = 12,
-	MOV = 13,
+	MOV = 13
 } DataProcessingOpcode;
 
-////  2.3 CONDITION CODE DEFINITION  //////////////////////////////////////////
 
-typedef enum 
+////  2.2 CONDITION CODE DEFINITION  //////////////////////////////////////////
+
+typedef enum
 {
 	EQ =  0,
 	NE =  1,

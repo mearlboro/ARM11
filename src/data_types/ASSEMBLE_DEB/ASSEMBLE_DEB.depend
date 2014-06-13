@@ -1,0 +1,35 @@
+# depslib dependency file v1.0
+1401798377 source:/homes/ir213/Desktop/ARMPROJ/arm11_22/src/data_types/linklist.c
+	<stdint.h>
+	<stdlib.h>
+	<stdio.h>
+	"linklist_I.h"
+
+1401798377 /homes/ir213/Desktop/ARMPROJ/arm11_22/src/data_types/linklist_I.h
+	<stdint.h>
+	"linklist_T.h"
+
+1401798377 /homes/ir213/Desktop/ARMPROJ/arm11_22/src/data_types/linklist_T.h
+	<stdint.h>
+
+1401986200 source:/homes/ir213/Desktop/ARMPROJ/arm11_22/src/data_types/test.c
+	<stdlib.h>
+	<stdio.h>
+	"linklist_I.h"
+	"symtable_I.h"
+
+1401798377 /homes/ir213/Desktop/ARMPROJ/arm11_22/src/data_types/symtable_I.h
+	<stdint.h>
+	"symtable_T.h"
+
+1401985112 /homes/ir213/Desktop/ARMPROJ/arm11_22/src/data_types/symtable_T.h
+	<stdint.h>
+
+1401986185 source:/homes/ir213/Desktop/ARMPROJ/arm11_22/src/data_types/symtable.c
+	<stdint.h>
+	<string.h>
+	<stdlib.h>
+	<assert.h>
+	<stdio.h>
+	"symtable_I.h"
+

@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "util/bitwise.h"
+#include "libs/bitwise.h"
 
 ////  PLEASE FORGIVE ME <3  ////////////////////////////////////////////////////
 
@@ -17,14 +17,14 @@
 //// 1. ARM OBJECT  ////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "ARM_T.h"
+#include "libs/ARM.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////
 //// 2. INSTRUCTION DEFINITONS  ////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-#include "instruction_T.h"
+#include "libs/instruction.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -272,7 +272,7 @@ void exe_single_data_transfer(int32_t word)
 	int Rn     = instr->Rn;         // base register
 	int Rd     = instr->Rd;         // destination register
 	int Offset = instr->Offset;
-	int I      = instr->I;
+	int I      = instr->_I;
 	int P      = instr->P;
 	int U      = instr->U;
 	int L      = instr->L;
@@ -320,7 +320,7 @@ void exe_data_processing(int32_t word)
 {
 	DataProcessingInstr *inst = (DataProcessingInstr *) &word;
 	
-	int I        = inst->I;        // 25
+	int I        = inst->_I;        // 25
 	int OpCode   = inst->OpCode;   // 24-21
 	int S        = inst->S;        
 	int Rn       = inst->Rn;

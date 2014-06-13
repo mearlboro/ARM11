@@ -22,7 +22,7 @@ int map_cmp_int(void *mic, void *mik)
 
 map *map_new(map_cmp cmp)
 {
-	map *m  = mem_chk(malloc(sizeof(map)), "map_new");
+	map *m  = mem_chk(malloc(sizeof(map)));
 	m->cmp  = cmp;
 	m->root = NULL;
 	return m;
@@ -31,7 +31,7 @@ map *map_new(map_cmp cmp)
 
 static map_entry *entry_new(void *key, void *value)
 {
-	map_entry *e = mem_chk(malloc(sizeof(map_entry)), "map_entry");
+	map_entry *e = mem_chk(malloc(sizeof(map_entry)));
 	e->key       = key;
 	e->value     = value;
 	e->left      = NULL;
@@ -41,18 +41,22 @@ static map_entry *entry_new(void *key, void *value)
 
 //////////////////////////////////////////////////////////////////////////  FREE
 
-static void entry_free(map_entry *e)
+static void entry_free(map_entry *e, map_free_flag flag)
 {
 	if (e == NULL) return;
-	entry_free(e->left);
-	entry_free(e->right);
+	entry_free(e->left,  flag);
+	entry_free(e->right, flag);
+	
+	if ((flag & MAP_FREE_VAL) == MAP_FREE_VAL) free(e->value);
+	if ((flag & MAP_FREE_KEY) == MAP_FREE_KEY) free(e->key);
+
 	free(e);
 }
 
 
-void map_free(map *m)
+void map_free(map *m, map_free_flag flag)
 {
-	entry_free(m->root);
+	entry_free(m->root, flag);
 	free(m);
 }
 
@@ -98,23 +102,23 @@ void map_put(map *m, void *key, void *value)
 
 //////////////////////////////////////////////////////////////////////////  ITER
 
-static void entry_iter(map_entry *e, map_fun function)
+static void entry_iter(map_entry *e, map_func func)
 {
 	if (e == NULL) return;
-	entry_iter(e->left, function);
-	function(e);
-	entry_iter(e->right, function);
+	entry_iter(e->left,  func);
+	func(e);
+	entry_iter(e->right, func);
 }
 
 
-void map_iter(map *m, map_fun f)
+void map_iter(map *m, map_func func)
 {
-	entry_iter(m->root, f);
+	entry_iter(m->root, func);
 }
 
 //////////////////////////////////////////////////////////////////////////  TEST
 
-/* static void map_print_str_int(map_entry *e)
+/*static void map_print_str_int(map_entry *e)
 {
 	printf("(%s, %i)\n", (char *) e->key, *(int *) e->value);
 }
@@ -143,6 +147,7 @@ static void foo()
 	map_iter(m, &map_print_str_int);
 	
 	
-	map_free(m);
-} */
+	map_free(m, MAP_FREE_NON);
+}*/
 
+////////////////////////////////////////////////////////////////////////////////
