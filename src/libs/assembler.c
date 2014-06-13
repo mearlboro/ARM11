@@ -14,25 +14,27 @@
 
 void ass_prog_free(ass_prog *p)
 {
-	int i = p->line_tot;
-	while (i--) free(p->instrs[i]);
+	for (int i = 0; i < p->line_tot; i++)
+	{
+		free(p->instrs[i]);
+	}
 	free(p->instrs);
-	map_free(p->sym_tbl, MAP_FREE_VAL);
+	map_free(p->sym_tbl, MAP_FREE_VAL | MAP_FREE_KEY);
 	free(p);
 }
 
 ///////////////////////////////////////////////  Extend Binary Instruction Array
 
-static bin_instr **realloc_instrs(ass_prog *p)
+static void realloc_instrs(ass_prog *p)
 {
-	return realloc(p->instrs, sizeof(bin_instr *) * (p->line_tot));
+	p->instrs = mem_chk(realloc(p->instrs, sizeof(bin_instr *) * (p->line_tot)));
 }
 
 //////////////////////////////////////////////////////  Generate ARM-Binary Code
 
 int32_t *ass_prog_gen(ass_prog *p)
 {
-	int32_t *words = malloc(sizeof(int32_t) * p->line_tot);
+	int32_t *words = mem_chk(malloc(sizeof(int32_t) * p->line_tot));
 	for (int i = 0; i < p->line_tot; i++)
 	{
 		words[i] = p->instrs[i]->bin_word;
@@ -49,34 +51,31 @@ uint16_t ass_prog_append(ass_prog *p, int32_t word)
 	realloc_instrs(p);
 
 	uint16_t address = (p->line_tot-1) * sizeof(int32_t); // Address starts at 0
-	bin_instr *instr = malloc(sizeof(bin_instr));
+	bin_instr *instr = mem_chk(malloc(sizeof(bin_instr)));
 	instr->bin_word  = word;
 	instr->word_addr = address;
 
-	p->instrs[p->line_tot-1] = instr;
+	int curr_instr = address / sizeof(int32_t);
+	p->instrs[curr_instr] = instr;
 
 	return address;
 }
 
 static void ass_prog_write(ass_prog *p, int32_t word)
 {
-	bin_instr *instr = malloc(sizeof(bin_instr));
+	//printf("%08x : ", p->curr_addr); print_bits_BE(word);
+	
+	bin_instr *instr = mem_chk(malloc(sizeof(bin_instr)));
 	instr->bin_word  = word;
 	instr->word_addr = p->curr_addr;
 	
-	p->instrs[p->curr_addr / sizeof(int32_t)] = instr;
+	int curr_instr = p->curr_addr / sizeof(int32_t);
+	p->instrs[curr_instr] = instr;
 	p->curr_addr += sizeof(int32_t);
+	
 }
 
 ///////////////////////////////////////////////////////  Assemble An ARM Program
-
-/* 
- * Interestingly, beq02.s has two empty lines at the end of the file. This
- * caused the last line to be tokenized into a single "" token which obviously
- * caused errors.
- */
-#define IS_LINE_EMPTY(toks) ((toks->tokn == 1) && (toks->toks[0] == '\0'))
-
 
 ass_prog *assemble(tokens *lines, ass_func ass_func, const char *delim)
 {
@@ -87,56 +86,49 @@ ass_prog *assemble(tokens *lines, ass_func ass_func, const char *delim)
 	
 	for (int i = 0; i < lines->tokn; i++)
 	{
-		tokens *line  = tokenize(strdup(lines->toks[i]), delim); // without strdup strange results
+		char   *currl = strdup(lines->toks[i]); // TODO why use strdup
+		tokens *line  = tokenize(currl, delim);
 		char   *label = line->toks[0];
 		
 		if (strstr(label, ":")) // Label encountered
 		{
 			labelc++;
-			label[strlen(label)-1] = '\0'; // Remove ':' // TODO want a better way...
+			label[strlen(label)-1] = '\0'; // Remove ':' TODO want a better way...
 			map_put(symtbl, strdup(label), heap_uint16_t(address));
 			continue;
 		}
 		address += sizeof(int32_t);
+		
+		free(currl);
 		toks_free(line);
 	}
 	
-	
   // Initialize Assembly Program
 	int line_tot = lines->tokn - labelc;
-	ass_prog *p  = malloc(sizeof(ass_prog));
-	p->instrs    = malloc(0); // Why LOL Well I know why
+	ass_prog *p  = mem_chk(malloc(sizeof(ass_prog)));
+	p->instrs    = mem_chk(malloc(0));
 	p->line_tot  = line_tot;
-	p->instrs    = realloc_instrs(p);
 	p->sym_tbl   = symtbl;
 	p->curr_addr = 0;
+	realloc_instrs(p);
 
 	// Pass #2
 	for (int i = 0; i < lines->tokn; i++)
 	{
-		tokens *line = tokenize(strdup(lines->toks[i]), delim);
-		
-		//if (IS_LINE_EMPTY(line)) continue;
-		
+		char  *currl = strdup(lines->toks[i]);
+		tokens *line = tokenize(currl, delim);
 		char   *mnem = line->toks[0];
 		
 		if (strstr(mnem, ":")) continue; // Label encountered
 
 		int32_t word = ass_func(line, p);
-		
-	 //printf("%08x : ", p->curr_addr); print_bits_BE(word);
-		
 		ass_prog_write(p, word);
 		
+		free(currl);
 		toks_free(line);
 	}
 	
-	ass_prog_print(p);
-	
-	// Clean Up And Return
-	//int32_t *binary_code = ass_prog_gen(p);
-	//ass_prog_free(p);
-	//return binary_code;
+	// Assembling done
 	return p;
 }
 
@@ -146,8 +138,9 @@ void ass_prog_print(ass_prog *p)
 {
 	for (int i = 0; i < p->line_tot; i++)
 	{
-		printf("%08x : ", p->instrs[i]->word_addr);
-	  print_bits_BE(p->instrs[i]->bin_word);
+		uint8_t add = p->instrs[i]->word_addr;
+		int32_t word = p->instrs[i]->bin_word;
+		printf("%07x: ", add); print_bits_BE(word);
 	}
 }
 

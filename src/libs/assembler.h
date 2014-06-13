@@ -32,9 +32,7 @@ void ass_prog_free(ass_prog *);
 
 ass_prog *assemble(tokens *, ass_func, const char *);
 
-
 void ass_prog_print(ass_prog *);
-
 
 #endif
 

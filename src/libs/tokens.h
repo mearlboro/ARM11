@@ -10,11 +10,7 @@ typedef struct tokens
 	char *line;
 } tokens;
 
-typedef void (*toks_fun)(char *);
-
-////////////////////////////////////////////////////////////////////////////////
-
-//static tokens *toks_new();
+typedef void (*toks_func)(char *);
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -24,11 +20,9 @@ void toks_print(tokens *);
 
 tokens *tokenize(char *, const char *);
 
-void toks_iter(tokens *, toks_fun);
+void toks_iter(tokens *, toks_func);
 
 char toks_endc(tokens *);
-
-//  tokens **tokenize_r(tokens *, const char *);
 
 ////////////////////////////////////////////////////////////////////////////////
 

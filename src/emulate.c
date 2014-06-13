@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 #include "libs/bitwise.h"
-#include "instructions.h"
+#include "architecture.h"
 
 ////  PLEASE FORGIVE ME <3  ////////////////////////////////////////////////////
 
@@ -107,7 +107,7 @@ ARMState *ARM = NULL;
 
 ////  3.2 MAIN  ////////////////////////////////////////////////////////////////
 
-int main(int argc, char **argv)
+int main2(int argc, char **argv)
 {
 	// Make sure input file is provided
 	if (argc < 2) 

@@ -3,14 +3,6 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-//#define MAP_ITER(m, f) (entry_iter(m->root, f))
-
-//#define MAP_PUT(m, k, v) (m->root = entry_put(m->root, k, v, m->cmp))
-
-//#define MAP_GET(m, k) (entry_get(m->root, k, m->cmp))
-
-////////////////////////////////////////////////////////////////////////////////
-
 typedef int (*map_cmp)(void *, void *);
 
 typedef struct map_entry
@@ -26,13 +18,12 @@ typedef struct map
 	map_cmp    cmp;
 } map;
 
-typedef void (*map_fun)(map_entry *);
+typedef void (*map_func)(map_entry *);
 
 typedef enum
 {
-	 MAP_FREE_NON = 0,
-	 MAP_FREE_KEY = 2,
-	 MAP_FREE_VAL = 4,
+	 MAP_FREE_KEY  = 1,
+	 MAP_FREE_VAL  = 2
 } map_free_flag;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -47,7 +38,7 @@ void  map_put(map *, void *, void *);
 
 void map_free(map *, map_free_flag);
 
-void map_iter(map *, map_fun);
+void map_iter(map *, map_func);
 
 ////////////////////////////////////////////////////////////////////////////////
 
