@@ -292,37 +292,36 @@ void exe_single_data_transfer(int32_t word)
 	int PostIndexing = IS_CLEAR(P);
 	int PreIndexing  = !PostIndexing;
 	
-	int address = ARM->registers[Rn];
-	int value   = ARM->registers[Rd];
+	int address = ARM->registers[Rn]; // Base
+	int value   = ARM->registers[Rd]; // Source/Destination
 	
 	Offset = IS_CLEAR(I) ? as_immediate_reg(Offset)
     : as_shifted_reg(Offset, 0);
 	
 	if (PreIndexing) address += (IS_SET(U) ? Offset : -Offset);
-    
-	if (address < 0 || address >= MEMORY_CAPACITY) goto moob;
-	if (is_GPIO_address(address))                  goto gpio;
-    
-	if (IS_SET(L)) REG_WRITE(Rd, MEM_WORD_READ(address));
-	else           MEM_WORD_WRITE(address, value);
+
+	if (is_GPIO_address(address))
+	{
+	  print_GPIO_address(address);
+      if (IS_SET(L)) REG_WRITE(Rd, address);
+	}
+	else 
+	{
+	  if (address < 0 || address >= MEMORY_CAPACITY) goto moob;
+	  if (IS_SET(L)) REG_WRITE(Rd, MEM_WORD_READ(address));
+	  else           MEM_WORD_WRITE(address, value);
+	}
 	
-	if (PostIndexing) REG_WRITE(Rn, address += (IS_SET(U) ? Offset : -Offset));
-    
-	if (address < 0 || address >= MEMORY_CAPACITY) goto moob;
-	if (is_GPIO_address(address))                  goto gpio;
-    
-    
+	if (PostIndexing) REG_WRITE(Rn, address += (IS_SET(U) ? Offset : -Offset));    
+	if (!is_GPIO_address(address))
+	{
+		if (address < 0 || address >= MEMORY_CAPACITY) goto moob;
+	}     
 	return;
     
 moob:
-    if(!is_GPIO_address(address))
-    {
-        printf("Error: Out of bounds memory access at address 0x%08x\n", address);
-        return;
-    }
-	
-gpio:
-    print_GPIO_address(address);
+    printf("Error: Out of bounds memory access at address 0x%08x\n", address);
+    return;
 }
 
 
