@@ -168,8 +168,9 @@ int as_immediate_value(int constant)
 	}
 	if (no_rot == 32)
 	{
-	  perror("Cannot convert numeric constant into 12-bit");
-	  exit(EXIT_FAILURE);
+      //printf("Constant: %x\n", constant);
+	  //perror("Cannot convert numeric constant into 12-bit");
+	  //exit(EXIT_FAILURE);
 	}
 	
 	// Now we have:
@@ -729,7 +730,7 @@ int main(int argc, char **argv)
 	ass_prog *p = assemble(lines, &assembler_function, " ,");
 	
 	// Write the words to the output file
-	write_object_code(p, "out");
+	write_object_code(p, argv[2]);
 	
 	toks_free(lines);
   ass_prog_free(p);
