@@ -716,12 +716,12 @@ int main(int argc, char **argv)
 	
 	if (argc < 3)
 	{
-		fprintf(stderr, "%s\n", "Please provide input and output files!");
-		exit(EXIT_FAILURE);
+		//fprintf(stderr, "%s\n", "Please provide input and output files!");
+		//exit(EXIT_FAILURE);
 	}
 	
 	setup_assemblers();
-  setup_code_map();
+    setup_code_map();
 
 	// Obtain lines of assembly code as tokens
 	tokens *lines = read_assembly_file(argv[1]);
@@ -729,8 +729,11 @@ int main(int argc, char **argv)
 	// Assemble the lines using the assembler_function
 	ass_prog *p = assemble(lines, &assembler_function, " ,");
 	
+    ass_prog_print(p);
 	// Write the words to the output file
 	write_object_code(p, argv[2]);
+    //printf("##########################################\n");
+    //system("xxd -b -c4 /Users/Zeme/ARM11/TEST.out");
 	
 	toks_free(lines);
   ass_prog_free(p);
