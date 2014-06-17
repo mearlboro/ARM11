@@ -56,8 +56,8 @@ char *strdelchr(char *buffer, char chr)
 
 	if ((c = index(str, chr)) != NULL)
 	{
-	    size_t left = sizeof(str) - (c + 1 - str);
-	    memmove(c, c + 1, left);
+	    //size_t left = sizeof(str) - (c + 1 - str);
+	    strcpy(c, c+1);//memmove(c, c + 1, left);
 	}
 
 	return str;
