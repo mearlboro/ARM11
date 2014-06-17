@@ -36,9 +36,9 @@ void *map_get(map *, void *);
 
 void  map_put(map *, void *, void *);
 
-void map_free(map *, map_free_flag);
+void  map_free(map *, map_free_flag);
 
-void map_iter(map *, map_func);
+void  map_iter(map *, map_func);
 
 ////////////////////////////////////////////////////////////////////////////////
 

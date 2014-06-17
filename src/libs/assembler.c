@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <assert.h>
+
 #include "tokens.h"
 #include "map.h"
 #include "utils.h"
@@ -64,15 +65,15 @@ uint16_t assembly_prog_append(assembly_prog *p, int32_t word)
 static void assembly_prog_write(assembly_prog *p, int32_t word)
 {
 	printf("%08x : ", p->curr_addr); print_bits_BE(word);
-	
+
 	bin_instr *instr = mem_chk(malloc(sizeof(bin_instr)));
 	instr->bin_word  = word;
 	instr->word_addr = p->curr_addr;
-	
+
 	int curr_instr = p->curr_addr / sizeof(int32_t);
 	p->instrs[curr_instr] = instr;
 	p->curr_addr += sizeof(int32_t);
-	
+
 }
 
 ///////////////////////////////////////////////////////  Assemble An ARM Program
@@ -83,26 +84,25 @@ assembly_prog *assemble(tokens *lines, assemble_fptr f, const char *delim)
 	map      *symtbl  = map_new(&map_cmp_str);
 	uint16_t  address = 0;
 	int       labelc  = 0;
-	
+
 	for (int i = 0; i < lines->tokn; i++)
 	{
-		char   *currl = strdup(lines->toks[i]); // TODO why use strdup
+		char   *currl = strdup(lines->toks[i]);
 		tokens *line  = tokenize(currl, delim);
 		char   *label = line->toks[0];
-		
-		if (strstr(label, ":")) // Label encountered
+
+		if (strchr(label, ':')) // Label encountered
 		{
 			labelc++;
-			label[strlen(label)-1] = '\0'; // Remove ':' TODO want a better way...
-			map_put(symtbl, strdup(label), heap_uint16_t(address));
+			map_put(symtbl, strdelchr(label, ':'), heap_uint16_t(address));
+            toks_free(line);
 			continue;
 		}
 		address += sizeof(int32_t);
-		
-		free(currl);
+
 		toks_free(line);
 	}
-	
+
   // Initialize Assembly Program
 	int line_tot      = lines->tokn - labelc;
 	assembly_prog *p  = mem_chk(malloc(sizeof(assembly_prog)));
@@ -118,16 +118,15 @@ assembly_prog *assemble(tokens *lines, assemble_fptr f, const char *delim)
 		char  *currl = strdup(lines->toks[i]);
 		tokens *line = tokenize(currl, delim);
 		char   *mnem = line->toks[0];
-		
-		if (strstr(mnem, ":")) continue; // Label encountered
+
+		if (strchr(mnem, ':')) continue; // Label encountered
 
 		int32_t word = f(line, p);
 		assembly_prog_write(p, word);
-		
-		free(currl);
+
 		toks_free(line);
 	}
-	
+
 	// Assembling done
 	return p;
 }

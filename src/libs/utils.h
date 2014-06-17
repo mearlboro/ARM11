@@ -1,7 +1,9 @@
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef _UTILS_H
+#define _UTILS_H
 
 #include <stdint.h>
+
+////////////////////////////////////////////////////////////////////////////////
 
 #define ABS(x) ((x) < 0 ? -(x) : (x))
 
@@ -18,5 +20,10 @@ void *mem_chk(void *);
 void file_chk(int);
 
 ////////////////////////////////////////////////////////////////////////////////
+
+//TODO: char *strtolwr(char *);
+
+char *strdelchr(char *, char);
+
 
 #endif

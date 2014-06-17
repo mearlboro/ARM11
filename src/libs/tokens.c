@@ -4,7 +4,7 @@
 #include "tokens.h"
 #include "utils.h"
 
-//////////////////////////////////////////////////////////////////////////  FREE
+/////////////////////////////////////////////////////////////////////////  FREE
 
 void toks_free(tokens *toks)
 {
@@ -17,7 +17,7 @@ void toks_free(tokens *toks)
 	free(toks);
 }
 
-/////////////////////////////////////////////////////////////////////////  PRINT
+////////////////////////////////////////////////////////////////////////  PRINT
 
 void toks_print(tokens *toks)
 {
@@ -43,19 +43,32 @@ tokens *tokenize(char *str, const char *delim)
 	char   *tok  = NULL;
 	int     tokn = 0;
 	size_t  tokz = 0;
-	
+
 	toks->line = strdup(str);
-	
+
+	/* TODO: Y U NO?
 	while ((tok = strsep(&str, delim)) != NULL)
 	{
 		if (*tok == '\0') continue; // Discard empty tokens
-		
+
 		tokz               = sizeof(char *) * (tokn + 1);
 		toks->toks         = mem_chk(realloc(toks->toks, tokz));
 		toks->toks[tokn++] = strdup(tok);
 	}
+	toks->tokn = tokn;*/
+
+    tok = strtok(str, delim);
+	while (tok != NULL)
+	{
+		if (*tok == '\0') continue; // Discard empty tokens
+
+		tokz               = sizeof(char *) * (tokn + 1);
+		toks->toks         = mem_chk(realloc(toks->toks, tokz));
+		toks->toks[tokn++] = strdup(tok);
+		tok = strtok(0, delim);
+	}
 	toks->tokn = tokn;
-	
+
 	return toks;
 }
 
@@ -76,4 +89,3 @@ char toks_endc(tokens *toks)
 	return toks->toks[toks->tokn-1][strlen(toks->toks[toks->tokn-1])-1];
 }
 
-//////////////////////////////////////////////////////////////////////  TOKENIZE

@@ -1,8 +1,13 @@
+#include <ctype.h>
+#include <memory.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
+
 #include "utils.h"
 
-////////////////////////////////////////////////////////////////////////////////
+////  1. MEMORY UTILS //////////////////////////////////////////////////////////
 
 uint16_t *heap_uint16_t(uint16_t i)
 {
@@ -37,4 +42,30 @@ void file_chk(int predicate)
 	}
 }
 
-////////////////////////////////////////////////////////////////////////////////
+
+////  2. STRING UTILS  /////////////////////////////////////////////////////////
+
+char *strdelchr(char *buffer, char chr)
+{
+    char *str = strdup(buffer);
+    char* c;
+
+	if ((c = index(str, chr)) != NULL)
+	{
+	    size_t left = sizeof(str) - (c + 1 - str);
+	    memmove(c, c + 1, left);
+	}
+
+	return str;
+}
+
+/*TODO: why doesn't it work here?
+char *strtolwr(char *buffer)
+{
+	char *str = strdup(buffer);
+
+	for (int i=0; i < strlen(str); i++)
+	  if (str[i] > 'z' || str[i] < 'a') str[i] = tolower(str[i]);
+
+	return str;
+}*/

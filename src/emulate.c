@@ -38,7 +38,7 @@
 #define REG_WRITE(r, v) (ARM->registers[(r)] = (v))
 
 
-////  3.2 MEMEORY READ/WRITE  //////////////////////////////////////////////////
+////  3.2 MEMORY READ/WRITE  ///////////////////////////////////////////////////
 
 #define MEM_BYTE_READ(i)      (ARM->memory[(i)])
 
@@ -96,11 +96,7 @@ void print_GPIO_address(int);
 ////  4. MAIN  /////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-
-////  4.0 ARM OBJECT  //////////////////////////////////////////////////////////
-
 ARMState *ARM = NULL;
-
 
 ////  4.1 MAIN  ////////////////////////////////////////////////////////////////
 
@@ -302,15 +298,15 @@ void exe_single_data_transfer(int32_t word)
 
 	return;
 
-	moob:
-			if(!is_GPIO_address(address)) 
-			{		
-				printf("Error: Out of bounds memory access at address 0x%08x\n", address);
-				return; 
-			}
+moob:
+	if(!is_GPIO_address(address)) 
+	{		
+		printf("Error: Out of bounds memory access at address 0x%08x\n", address);
+		return; 
+	}
 	
-	gpio: 
-			print_GPIO_address(address);
+gpio: 
+	print_GPIO_address(address);
 }
 
 
@@ -445,21 +441,21 @@ int32_t as_shifted_reg(int32_t value, int8_t S)
 	
 	switch (Type)
 	{
-		case 0 : // lsl - Logical shift left
+		case LSL : // Arithmetic and logical shift left are equivalent
 		{
 			value = reg << amount;
 			if (amount != 0) carry = BIT_GET(reg, 31 - amount + 1);
 			if (IS_SET(S))   CPSR_PUT(CARRY, carry);
 			break;
 		}
-		case 1 : // lsr - Logical shift right
+		case LSR :
 		{
 			value = reg >> amount;
 			if (amount != 0) carry = BIT_GET(reg, amount - 1);
 			if (IS_SET(S))   CPSR_PUT(CARRY, carry);
 			break;
 		}
-		case 2 : // asr - Arithmetic shift right
+		case ASR :
 		{
 			value = reg >> amount;
 			if (amount != 0) carry = BIT_GET(reg, amount - 1);
@@ -468,7 +464,7 @@ int32_t as_shifted_reg(int32_t value, int8_t S)
 			for (int j = 0; j < amount; j++) BIT_PUT(value, 31 - j, bit);
 			break;
 		}
-		case 3  : // ror - Rotate right
+		case ROR :
 		{
 			value = rotate_right(reg, amount); 
 			break; 
