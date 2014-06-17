@@ -1,0 +1,29 @@
+#ifndef _TOKENS_H
+#define _TOKENS_H
+
+////////////////////////////////////////////////////////////////////////////////
+
+typedef struct tokens
+{
+	char **toks;
+	unsigned int tokn;
+	char *line;
+} tokens;
+
+typedef void (*toks_func)(char *);
+
+////////////////////////////////////////////////////////////////////////////////
+
+void toks_free(tokens *);
+
+void toks_print(tokens *);
+
+tokens *tokenize(char *, const char *);
+
+void toks_iter(tokens *, toks_func);
+
+char toks_endc(tokens *);
+
+////////////////////////////////////////////////////////////////////////////////
+
+#endif
