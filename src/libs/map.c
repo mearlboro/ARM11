@@ -116,38 +116,3 @@ void map_iter(map *m, map_func func)
 	entry_iter(m->root, func);
 }
 
-//////////////////////////////////////////////////////////////////////////  TEST
-
-/*static void map_print_str_int(map_entry *e)
-{
-	printf("(%s, %i)\n", (char *) e->key, *(int *) e->value);
-}
-
-
-static void foo()
-{
-	map *m = map_new(&map_cmp_str);
-	
-	char *strs[4] =
-	{
-		"L'ultimo inquisitore",
-		"A Clockwork Orange",
-		"minou2004",
-		"Pulp Fiction"
-	};
-	
-	int *ints = mem_chk(malloc(sizeof(int) * 4), "foo");
-	
-	for (int i = 0; i < 4; i++)
-	{
-		ints[i] = i * i;
-		map_put(m, strs[i], &ints[i]);
-	}
-	
-	map_iter(m, &map_print_str_int);
-	
-	
-	map_free(m, MAP_FREE_NON);
-}*/
-
-////////////////////////////////////////////////////////////////////////////////

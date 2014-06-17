@@ -279,34 +279,33 @@ void exe_single_data_transfer(int32_t word)
 	int address = ARM->registers[Rn];
 	int value   = ARM->registers[Rd];
 	
-	Offset = IS_CLEAR(I) ? as_immediate_reg(Offset) 
-											 : as_shifted_reg(Offset, 0);
+	Offset = IS_CLEAR(I) ? as_immediate_reg(Offset)
+    : as_shifted_reg(Offset, 0);
 	
 	if (PreIndexing) address += (IS_SET(U) ? Offset : -Offset);
 
-	if (address < 0 || address >= MEMORY_CAPACITY) goto moob;
-	if (is_GPIO_address(address))                  goto gpio;
-
-	if (IS_SET(L)) REG_WRITE(Rd, MEM_WORD_READ(address));
-	else           MEM_WORD_WRITE(address, value);
-	
-	if (PostIndexing) REG_WRITE(Rn, address += (IS_SET(U) ? Offset : -Offset));
-
-	if (address < 0 || address >= MEMORY_CAPACITY) goto moob;
-	if (is_GPIO_address(address))                  goto gpio;
-
-
-	return;
-
-moob:
-	if(!is_GPIO_address(address)) 
-	{		
-		printf("Error: Out of bounds memory access at address 0x%08x\n", address);
-		return; 
+	if (is_GPIO_address(address))
+	{
+	  print_GPIO_address(address);
+      if (IS_SET(L)) REG_WRITE(Rd, address);
+	}
+	else 
+	{
+	  if (address < 0 || address >= MEMORY_CAPACITY) goto moob;
+	  if (IS_SET(L)) REG_WRITE(Rd, MEM_WORD_READ(address));
+	  else           MEM_WORD_WRITE(address, value);
 	}
 	
-gpio: 
-	print_GPIO_address(address);
+	if (PostIndexing) REG_WRITE(Rn, address += (IS_SET(U) ? Offset : -Offset));    
+	if (!is_GPIO_address(address))
+	{
+		if (address < 0 || address >= MEMORY_CAPACITY) goto moob;
+	}     
+	return;
+    
+moob:
+    printf("Error: Out of bounds memory access at address 0x%08x\n", address);
+    return;
 }
 
 
@@ -476,6 +475,7 @@ int32_t as_shifted_reg(int32_t value, int8_t S)
 }
 
 
+
 ///////////////////////////////////////////////////////////////////////////////
 ////  5.5 GPIO ////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -483,25 +483,25 @@ int32_t as_shifted_reg(int32_t value, int8_t S)
 int pins[32];
 
 int is_GPIO_address(int address) {
-
-	switch(address) 
+    
+	switch(address)
 	{
 		case 0x20200000:
 		case 0x20200004:
-		case 0x20200008: 
+		case 0x20200008:
 		case 0x20200028:
 		case 0x2020001c: return 1;
 		default:         return 0;
 	}
-} 
+}
 
-void print_GPIO_address(int address) 
+void print_GPIO_address(int address)
 {
 	int group_of_pins = 0;
 	int pin_on        = 0;
-	int pin_off       = 0; 
+	int pin_off       = 0;
 	
-	switch(address) 
+	switch(address)
 	{
 		case 0x20200000: group_of_pins =  0; goto pin_accessed;
 		case 0x20200004: group_of_pins = 10; goto pin_accessed;
@@ -510,14 +510,15 @@ void print_GPIO_address(int address)
 		case 0x2020001c: pin_on        =  1; break;
 		default:         return;
 	}
-
+    
 	if (pin_on)  printf("PIN ON\n");
 	if (pin_off) printf("PIN OFF\n");
-
-	return; 
-
-	pin_accessed:
-		printf("One GPIO pin from %d to %d has been accessed\n", 
-						group_of_pins, group_of_pins + 9);
+    
+	return;
+    
+pin_accessed:
+    printf("One GPIO pin from %d to %d has been accessed\n",
+           group_of_pins, group_of_pins + 9);
 }
+
 

@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+#include "utils.h"
+
 ////////////////////////////////////////////////////////////////////////////////
 ////  EMULATOR: INSTRUCTION DEFINITIONS  ///////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -73,6 +75,15 @@ typedef struct ShiftReg
 	unsigned int Type   : 2;
 	unsigned int Amount : 5;
 } ShiftReg;
+
+
+typedef struct ShiftRegOptional
+{
+	unsigned int Amount : 5;
+	unsigned int Type   : 2;
+	unsigned int Flag   : 1;
+	unsigned int Rm     : 4;
+} ShiftRegOptional;
 
 ////  MNEMONICS DEFINITIONS ////////////////////////////////////////////////////
 
@@ -163,13 +174,11 @@ struct { ShiftType no; char * str; }
 
 ////  GET ENUM FROM STRING FUNCTION  ///////////////////////////////////////////
 
-int str_to_mnemonic(char *);
-int str_to_opcode(char *);
-int str_to_cond(char *);
-int str_to_shift(char *);
-
-
-char *strtolwr(char *buffer)
+/* 
+ * Converts a string to lowercase if there are any uppercase characters
+ * the string remains unchanged if it is lowercase
+ */
+static char *strtolwr(char *buffer)
 {
 	char *str = strdup(buffer);
 
@@ -180,14 +189,12 @@ char *strtolwr(char *buffer)
 }
 
 
-// TODO: PUT IT IN .c
-
 #define STR_TO_ENUM(a) int str_to_##a(char *x)           \
 {                                                        \
 	int len = sizeof(a##_array)/sizeof(a##_array[0]);      \
 	for (int i = 0; i < len; i++)                          \
 	{	                                                     \
-		char *low_x = strtolwr(a##_array[i].str);        \
+		char *low_x = strtolwr(a##_array[i].str);            \
 		if (strcmp(x, low_x) == 0)                           \
 		{                                                    \
 			return a##_array[i].no;                            \

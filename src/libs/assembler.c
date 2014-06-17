@@ -51,7 +51,7 @@ uint16_t assembly_prog_append(assembly_prog *p, int32_t word)
 	p->line_tot++;
 	realloc_instrs(p);
 
-	uint16_t address = (p->line_tot-1) * sizeof(int32_t); // Address starts at 0
+	uint16_t address = (p->line_tot-1) * sizeof(int32_t); 
 	bin_instr *instr = mem_chk(malloc(sizeof(bin_instr)));
 	instr->bin_word  = word;
 	instr->word_addr = address;
@@ -126,12 +126,11 @@ assembly_prog *assemble(tokens *lines, assemble_fptr f, const char *delim)
 
 		toks_free(line);
 	}
-
 	// Assembling done
 	return p;
 }
 
-////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////// Prints an assembler program
 
 void assemble_prog_print(assembly_prog *p)
 {

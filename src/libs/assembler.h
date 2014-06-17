@@ -40,62 +40,6 @@ void assembly_prog_print(assembly_prog *);
 
 
  
-// /*
-// * An assembly instruction comprises an operation mnemonic (e.g. add, ldr, ...),
-// * and one, two, three or four operand ﬁelds, depending on the instruction type.
-// *
-// * The operation mnemonic and operands are stored in <toks>
-// *
-// * The position of this assembly instruction in the assembly file from which
-// * is was read is stored in <lineno>, with 0 being the first line in the file.
-// *
-// * Each assembly instruction will be assembled into a binary instruction,
-// * stored in <bin_instr>.
-// */
-//typedef struct ass_instr
-//{
-//	tokens    *toks;
-//	int				 lineno;
-//	bin_instr *bin_instr;
-//} assembly_instr;							// DON'T NEED?
-//
-///*
-// * An assembly directive, optionally preceded by a label.
-// */
-//typedef struct ass_dir { } ass_dir;
-//
-
-///*
-// * An assembly program consists of a long list of binary words and relative
-// * machine addresses. These are stored in <bin_instrs>
-// *
-// * We would like to know how many lines (words) our assembly program currently
-// * has; this is a job for <line_tot>.
-// *
-// * Each (non-empty) line of an assembler ﬁle contains either an assembly
-// * instruction or an assembler directive, optionally preceded by a label.
-// * These lines are stored as tokens in <lines>.
-// *
-// * Labels are strings that begin with an alphabetical character (a–z or A–Z)
-// * and end with a :, as in “label:”. The value of the label is the address of
-// * the machine word corresponding to the position of the label. So we need a
-// * way to map labels to addresses. Enter <symtbl>, a map (duh).
-// *
-// * Supposed we have loaded an assembly source file and we want to generate
-// * an assembly program. We need a way to keep track of the program state
-// * as we process and assemble it. Since we are generating the program line by
-// * line, it will be nice to know the current line in the assembly file that we
-// * are processing. This is stored int <curr_line>.
-// *
-// */
-//typedef struct ass_prog
-//{
-//	bin_instr **bin_instrs;
-//	map				 *symtbl;
-//	int					line_tot;
-//} ass_prog;
-
-
 /*
  * An assembly program consists of a long list of binary words and relative
  * machine addresses. These are stored in <bin_instrs>

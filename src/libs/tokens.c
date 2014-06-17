@@ -46,18 +46,7 @@ tokens *tokenize(char *str, const char *delim)
 
 	toks->line = strdup(str);
 
-	/* TODO: Y U NO?
-	while ((tok = strsep(&str, delim)) != NULL)
-	{
-		if (*tok == '\0') continue; // Discard empty tokens
-
-		tokz               = sizeof(char *) * (tokn + 1);
-		toks->toks         = mem_chk(realloc(toks->toks, tokz));
-		toks->toks[tokn++] = strdup(tok);
-	}
-	toks->tokn = tokn;*/
-
-    tok = strtok(str, delim);
+  tok = strtok(str, delim);
 	while (tok != NULL)
 	{
 		if (*tok == '\0') continue; // Discard empty tokens

@@ -45,6 +45,10 @@ void file_chk(int predicate)
 
 ////  2. STRING UTILS  /////////////////////////////////////////////////////////
 
+/*
+ * Deletes the character chr from the string buffer
+ * returning the new string 
+ */
 char *strdelchr(char *buffer, char chr)
 {
     char *str = strdup(buffer);
@@ -59,13 +63,3 @@ char *strdelchr(char *buffer, char chr)
 	return str;
 }
 
-/*TODO: why doesn't it work here?
-char *strtolwr(char *buffer)
-{
-	char *str = strdup(buffer);
-
-	for (int i=0; i < strlen(str); i++)
-	  if (str[i] > 'z' || str[i] < 'a') str[i] = tolower(str[i]);
-
-	return str;
-}*/

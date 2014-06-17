@@ -178,7 +178,6 @@ void write_object_code(assembly_prog *p, const char *path)
 
 	fclose(file);
 
-	// We no longer need code
 	free(code);
 }
 
@@ -189,7 +188,6 @@ void write_object_code(assembly_prog *p, const char *path)
 
 int main(int argc, char **argv)
 {
-    //argc=3; argv[1] ="lsl01.s"; argv[2]="lsl01t.out";
 	if (argc < 3)
 	{
 		fprintf(stderr, "%s\n", "Please provide input and output files!");
@@ -246,8 +244,8 @@ static int as_shifted_register(tokens *line, idx Rm)
 	char *shift_tok  = line->toks[Rm + 2];
 	int shift_type   = str_to_shift(shift_name);
 
-    ShiftReg reg1;
-    ShiftReg reg2; // TODO: y act so weird when i use just one struct?
+    ShiftReg         reg1;
+    ShiftRegOptional reg2;
     int result = 0;
 
 	if (IS_EXPRESSION(shift_tok)) // Case: <shift> = <shiftname> <#expression>
@@ -257,7 +255,7 @@ static int as_shifted_register(tokens *line, idx Rm)
         reg1.Type   = shift_type;
         reg1.Amount = PARSE_EXPR(shift_tok);
 
-        result      = *((int *) &reg1); //TODO: why optionals work when flipped
+        result      = *((int *) &reg1); 
 	}
 	else // case <shift> = <shiftname> <register>
 	{
@@ -303,7 +301,7 @@ static int as_immediate_value(int constant)
 	  exit(EXIT_FAILURE);
 	}
 
-	return ((no_rot / 2) << 8) | constant; // Constructing Operand2 (Rotate + Imm)
+	return ((no_rot / 2) << 8) | constant; 
 }
 
 /*
@@ -554,30 +552,32 @@ int32_t assemble_sdti(tokens *_line, assembly_prog *p)
 	else // Case: Rn,{+/-}Rm{,<shift>}
 	{
 		ImmediateFlag = 1;
-
+		// See if {+/-} sign is present
 		int has_sign = offset_tok[0] == '-' || offset_tok[0] == '+';
-
+		// Remove {+/-} sign if present
 		if (has_sign)
 		{
 			UpFlag = (offset_tok[0] == '+');
 			offset_tok++;
 		}
+		// Now compute shifted register
 		Offset = as_shifted_register(line, 3);
+		// Work out UpFlag accordingly
 		UpFlag = (has_sign) ? UpFlag : (Offset >= 0);
 	}
 
 	SingleDataTransferInstr instr;
 
 	instr.Cond   = AL;
-	instr._01    = 1;
-	instr._I     = ImmediateFlag;
-	instr.P	     = PreIndexed;
-	instr.U	     = UpFlag;
-	instr._00    = 0;
-	instr.L	     = strcmp(mnemonic, "ldr") == 0;
+	instr._01	   = 1;
+	instr._I		 = ImmediateFlag;
+	instr.P			 = PreIndexed;
+	instr.U			 = UpFlag;
+	instr._00		 = 0;
+	instr.L			 = strcmp(mnemonic, "ldr") == 0;
 	instr.Rn     = PARSE_REG(2);
-	instr.Rd     = PARSE_REG(1);
-	instr.Offset = Offset;
+	instr.Rd		 = PARSE_REG(1);
+	instr.Offset = ABS(Offset);
 
 	toks_free(line); // Clean up
 
